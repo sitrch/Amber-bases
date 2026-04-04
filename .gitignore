@@ -1,3 +1,3 @@
-The modified file appears to be a Cyrillic-named file ("Структура") which doesn't match any common ignore patterns for compiled files, dependencies, or temporary files. Since this is likely a source/config file based on its name and there are no other files in the change list that warrant ignoring, no .gitignore rules need to be added.
+The modified file appears to be a Cyrillic-named file ("Структура" which means "Structure" in Russian). Since this is a source/config file and there are no build artifacts, dependencies, or temporary files in the changes, no additional ignore rules are needed.
 
-(empty - output nothing)
+(empty)
