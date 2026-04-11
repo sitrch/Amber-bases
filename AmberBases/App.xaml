@@ -1,0 +1,14 @@
+<Application x:Class="AmberBases.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- Grid Line Settings for all DataGrids -->
+        <SolidColorBrush x:Key="GridLinesColor">#E0E0E0</SolidColorBrush>
+        <Style TargetType="DataGrid">
+            <Setter Property="GridLinesVisibility" Value="All"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLinesColor}"/>
+            <Setter Property="VerticalGridLinesBrush" Value="{StaticResource GridLinesColor}"/>
+        </Style>
+    </Application.Resources>
+</Application>
