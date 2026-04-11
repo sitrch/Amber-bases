@@ -1,3 +1,48 @@
-The modified file appears to be a Russian-named file that has been URL-encoded in the path string. Since this appears to be a source code or configuration file (not a build artifact, dependency, or temporary file), and there are no other files indicating the need for specific ignore patterns, no additional rules are needed in the .gitignore file.
+# Visual Studio
+.vs/
+.vscode/
 
-(empty — output nothing)
+# Build outputs
+AmberBases/bin/
+AmberBases/obj/
+bin/
+obj/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.sln.docstatus
+
+# Package Manager
+packages/
+*.nupkg
+.nuget/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE JetBrains Rider
+.idea/
+
+# Node.js
+node_modules/
+
+# Lock files
+*.lock
+
+# Excel temporary files
+~$*
+.~lock.*
+
+# Cline/MCP
+.clinedata/
+*.mcp_cache
+
+# Test projects (temporary)
+tmp/
+temp/
+
+# Database files (SQLite) - если не нужно хранить в репозитории
+*.sqlite
