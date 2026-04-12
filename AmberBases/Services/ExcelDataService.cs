@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using ExcelDataReader;
-using AmberBases.Dataset;
 
 namespace AmberBases.Services
 {
@@ -52,14 +51,6 @@ namespace AmberBases.Services
             }
 
             var tableNames = resultDataSet.Tables.Cast<DataTable>().Select(t => t.TableName).ToList();
-            var mappingRulesTable = KeyMappingRules.GetMappingRules(tableNames);
-            
-            if (mappingRulesTable.Rows.Count == 0)
-            {
-                MessageBox.Show("Не найдены таблицы 'РядыСтоек...', соответствующие правилу маппинга.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-            
-            resultDataSet.Tables.Add(mappingRulesTable);
 
             return resultDataSet;
         }

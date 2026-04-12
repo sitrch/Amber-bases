@@ -8,6 +8,7 @@ namespace AmberBases.Facade
 {
     public class CFloor
     {
+        public string Плоскость;
         public int Этаж;
         public double НизСтойки;
         public double ВысотаСтойки;
