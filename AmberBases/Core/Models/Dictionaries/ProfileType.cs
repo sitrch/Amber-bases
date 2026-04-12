@@ -7,6 +7,10 @@ namespace AmberBases.Core.Models.Dictionaries
     /// </summary>
     public class ProfileType : BaseDictionaryModel
     {
+        #region Основные свойства
+        
         public string Name { get; set; }
+        
+        #endregion
     }
 }

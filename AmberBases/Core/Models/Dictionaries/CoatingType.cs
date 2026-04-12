@@ -7,9 +7,13 @@ namespace AmberBases.Core.Models.Dictionaries
     /// </summary>
     public class CoatingType : BaseDictionaryModel
     {
+        #region Основные свойства
+        
         /// <summary>
         /// Название типа покрытия.
         /// </summary>
         public string Name { get; set; }
+        
+        #endregion
     }
 }

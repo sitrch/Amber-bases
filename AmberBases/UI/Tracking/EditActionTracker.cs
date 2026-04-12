@@ -63,6 +63,17 @@ namespace AmberBases.UI.Tracking
         /// </summary>
         public DataTable TrackingTable => _trackingTable;
 
+        // Навигационные свойства, которые должны быть исключены из трекинга (complex reference types)
+        private static readonly HashSet<string> ExcludedNavigationProperties = new HashSet<string>
+        {
+            // ProfileArticle navigation
+            "Manufacturer", "System", "Color", "StandartBarLength", "ProfileType",
+            // ProfileSystem navigation
+            "Provider",
+            // Color navigation
+            "CoatingType"
+        };
+
         public EditActionTracker(IList sourceCollection, Type entityType)
         {
             _sourceCollection = sourceCollection ?? throw new ArgumentNullException(nameof(sourceCollection));
@@ -70,6 +81,8 @@ namespace AmberBases.UI.Tracking
             
             _entityProperties = entityType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead && p.CanWrite)
+                .Where(p => !ExcludedNavigationProperties.Contains(p.Name))
+                .Where(p => IsSimpleType(p.PropertyType))
                 .ToArray();
 
             _notifyCollection = sourceCollection as INotifyCollectionChanged;
@@ -459,6 +472,29 @@ namespace AmberBases.UI.Tracking
         private void OnStateChanged()
         {
             StateChanged?.Invoke(CanUndo, CanRedo);
+        }
+
+        /// <summary>
+        /// Проверяет, является ли тип простым (скалярным) — подходит для DataColumn.
+        /// Исключает сложные reference-типы с навигационными свойствами.
+        /// </summary>
+        private static bool IsSimpleType(Type type)
+        {
+            // Примитивные типы
+            if (type.IsPrimitive) return true;
+            if (type == typeof(string)) return true;
+            if (type == typeof(decimal) || type == typeof(DateTime) || type == typeof(Guid)) return true;
+            if (type == typeof(TimeSpan) || type == typeof(DateTimeOffset)) return true;
+            
+            // Nullable обёртки над простыми типами
+            var underlying = Nullable.GetUnderlyingType(type);
+            if (underlying != null) return IsSimpleType(underlying);
+            
+            // Enum
+            if (type.IsEnum) return true;
+            
+            // Всё остальное (сложные классы моделей) — исключаем
+            return false;
         }
     }
 }

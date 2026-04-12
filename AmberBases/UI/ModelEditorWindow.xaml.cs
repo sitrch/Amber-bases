@@ -164,11 +164,11 @@ namespace AmberBases.UI
                     if (item.Id == 0) _dataService.AddColor(item, _dbPath);
                     else _dataService.UpdateColor(item, _dbPath);
                 }
-                else if (modelType == typeof(WhipLength))
+                else if (modelType == typeof(StandartBarLength))
                 {
-                    var item = (WhipLength)_model;
-                    if (item.Id == 0) _dataService.AddWhipLength(item, _dbPath);
-                    else _dataService.UpdateWhipLength(item, _dbPath);
+                    var item = (StandartBarLength)_model;
+                    if (item.Id == 0) _dataService.AddStandartBarLength(item, _dbPath);
+                    else _dataService.UpdateStandartBarLength(item, _dbPath);
                 }
                 else if (modelType == typeof(ProfileType))
                 {
@@ -342,7 +342,8 @@ namespace AmberBases.UI
                 DisplayMemberPath = "Name",
                 SelectedValuePath = "Id",
                 Width = 250,
-                Margin = new Thickness(0, 0, 5, 0)
+                Margin = new Thickness(0, 0, 5, 0),
+                ContextMenu = CreateFkContextMenu(prop, parentType, parentCollection)
             };
 
             var binding = new Binding(prop.Name) { Mode = BindingMode.TwoWay };
@@ -385,7 +386,11 @@ namespace AmberBases.UI
                 { "ProfileSystemId", typeof(ProfileSystem) },
                 { "ProfileTypeId", typeof(ProfileType) },
                 { "ApplicabilityId", typeof(Applicability) },
-                { "CoatingTypeId", typeof(CoatingType) }
+                { "CoatingTypeId", typeof(CoatingType) },
+                { "ManufacturerId", typeof(SystemProvider) },
+                { "SystemId", typeof(ProfileSystem) },
+                { "ColorId", typeof(AmberBases.Core.Models.Dictionaries.Color) },
+                { "StandartBarLengthId", typeof(StandartBarLength) }
             };
 
             return typeMappings.ContainsKey(prop.Name) ? typeMappings[prop.Name] : null;
@@ -479,6 +484,23 @@ namespace AmberBases.UI
             return mutable;
         }
 
+        /// <summary>
+        /// Создает контекстное меню для FK ComboBox с пунктом "Открыть таблицу".
+        /// </summary>
+        private ContextMenu CreateFkContextMenu(PropertyInfo fkProp, Type parentType, IEnumerable parentCollection)
+        {
+            var contextMenu = new ContextMenu();
+            var displayName = GetDisplayName(parentType.Name);
+            var menuItem = new MenuItem
+            {
+                Header = $"Открыть таблицу \"{displayName}\"",
+                Icon = new TextBlock { Text = "📂" }
+            };
+            menuItem.Click += (s, e) => OpenParentEditor(fkProp, parentCollection);
+            contextMenu.Items.Add(menuItem);
+            return contextMenu;
+        }
+
         private void RefreshComboBox(PropertyInfo fkProp, IEnumerable parentCollection)
         {
             foreach (var kvp in _fieldBindings)
@@ -499,7 +521,7 @@ namespace AmberBases.UI
                 { "SystemProvider", "Поставщик систем" },
                 { "ProfileSystem", "Профильная система" },
                 { "Color", "Цвет" },
-                { "WhipLength", "Длина хлыста" },
+                { "StandartBarLength", "Длина хлыста" },
                 { "ProfileType", "Тип профиля" },
                 { "Applicability", "Применимость" },
                 { "ProfileArticle", "Артикул профиля" },

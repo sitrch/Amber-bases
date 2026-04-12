@@ -26,11 +26,11 @@ namespace AmberBases.Services
         void UpdateColor(Color color, string dbPath);
         void DeleteColor(int id, string dbPath);
         
-        // WhipLength
-        List<WhipLength> GetWhipLengths(string dbPath);
-        void AddWhipLength(WhipLength length, string dbPath);
-        void UpdateWhipLength(WhipLength length, string dbPath);
-        void DeleteWhipLength(int id, string dbPath);
+        // StandartBarLength (ранее StandartBarLength)
+        List<StandartBarLength> GetStandartBarLengths(string dbPath);
+        void AddStandartBarLength(StandartBarLength length, string dbPath);
+        void UpdateStandartBarLength(StandartBarLength length, string dbPath);
+        void DeleteStandartBarLength(int id, string dbPath);
         
         // ProfileArticle
         List<ProfileArticle> GetProfileArticles(string dbPath);
@@ -43,6 +43,12 @@ namespace AmberBases.Services
         void AddProfileType(ProfileType item, string dbPath);
         void UpdateProfileType(ProfileType item, string dbPath);
         void DeleteProfileType(int id, string dbPath);
+
+        // CProfile
+        List<CProfile> GetCProfiles(string dbPath);
+        void AddCProfile(CProfile profile, string dbPath);
+        void UpdateCProfile(CProfile profile, string dbPath);
+        void DeleteCProfile(int id, string dbPath);
 
         // Applicability
         List<Applicability> GetApplicabilities(string dbPath);

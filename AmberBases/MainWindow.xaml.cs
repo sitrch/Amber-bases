@@ -137,13 +137,14 @@ namespace AmberBases
                     ExcelView.Visibility = Visibility.Collapsed;
                     DictionaryEditor.Visibility = Visibility.Visible;
                     DictionaryEditor.InitControl();
-                    DictionaryEditor.ShowProfileArticles();
+                    DictionaryEditor.SetMaterialsMode(true);
                 }
                 else if (selectedTab == DictionariesTab)
                 {
                     ExcelView.Visibility = Visibility.Collapsed;
                     DictionaryEditor.Visibility = Visibility.Visible;
                     DictionaryEditor.InitControl();
+                    DictionaryEditor.SetMaterialsMode(false);
                 }
             }
         }

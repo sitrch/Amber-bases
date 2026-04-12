@@ -25,16 +25,18 @@ namespace AmberBases.UI
         private readonly IDictionaryDataService _dataService;
         private readonly string _dbPath;
         private readonly InterfaceSettingsTracker _settingsTracker;
+        private bool _isMaterialsMode;
 
         // Data collections
         private ObservableCollection<SystemProvider> _systemProviders;
         private ObservableCollection<ProfileSystem> _profileSystems;
         private ObservableCollection<AmberBases.Core.Models.Dictionaries.Color> _colors;
-        private ObservableCollection<WhipLength> _whipLengths;
+        private ObservableCollection<StandartBarLength> _whipLengths;
         private ObservableCollection<ProfileType> _profileTypes;
         private ObservableCollection<Applicability> _applicabilities;
         private ObservableCollection<ProfileArticle> _profileArticles;
         private ObservableCollection<CoatingType> _coatingTypes;
+        private ObservableCollection<CProfile> _cProfiles;
 
 
         public DictionaryEditorView()
@@ -69,11 +71,12 @@ namespace AmberBases.UI
                 _systemProviders = new ObservableCollection<SystemProvider>(_dataService.GetSystemProviders(_dbPath));
                 _profileSystems = new ObservableCollection<ProfileSystem>(_dataService.GetProfileSystems(_dbPath));
                 _colors = new ObservableCollection<AmberBases.Core.Models.Dictionaries.Color>(_dataService.GetColors(_dbPath));
-                _whipLengths = new ObservableCollection<WhipLength>(_dataService.GetWhipLengths(_dbPath));
+                _whipLengths = new ObservableCollection<StandartBarLength>(_dataService.GetStandartBarLengths(_dbPath));
                 _profileTypes = new ObservableCollection<ProfileType>(_dataService.GetProfileTypes(_dbPath));
                 _applicabilities = new ObservableCollection<Applicability>(_dataService.GetApplicabilities(_dbPath));
                 _profileArticles = new ObservableCollection<ProfileArticle>(_dataService.GetProfileArticles(_dbPath));
                 _coatingTypes = new ObservableCollection<CoatingType>(_dataService.GetCoatingTypes(_dbPath));
+                _cProfiles = new ObservableCollection<CProfile>(_dataService.GetCProfiles(_dbPath));
 
                 // Map dictionaries for looking up FK references
                 var editorsCollections = GetAllCollectionsForEditor();
@@ -83,21 +86,23 @@ namespace AmberBases.UI
                 SystemProvidersGrid.Initialize(typeof(SystemProvider), _systemProviders, editorsCollections, dbContext, _dbPath, OpenParentTable);
                 ProfileSystemsGrid.Initialize(typeof(ProfileSystem), _profileSystems, editorsCollections, dbContext, _dbPath, OpenParentTable);
                 ColorsGrid.Initialize(typeof(Color), _colors, editorsCollections, dbContext, _dbPath, OpenParentTable);
-                WhipLengthsGrid.Initialize(typeof(WhipLength), _whipLengths, editorsCollections, dbContext, _dbPath, OpenParentTable);
+                StandartBarLengthsGrid.Initialize(typeof(StandartBarLength), _whipLengths, editorsCollections, dbContext, _dbPath, OpenParentTable);
                 ProfileTypesGrid.Initialize(typeof(ProfileType), _profileTypes, editorsCollections, dbContext, _dbPath, OpenParentTable);
                 ApplicabilitiesGrid.Initialize(typeof(Applicability), _applicabilities, editorsCollections, dbContext, _dbPath, OpenParentTable);
                 ProfileArticlesGrid.Initialize(typeof(ProfileArticle), _profileArticles, editorsCollections, dbContext, _dbPath, OpenParentTable);
                 CoatingTypesGrid.Initialize(typeof(CoatingType), _coatingTypes, editorsCollections, dbContext, _dbPath, OpenParentTable);
+                CProfilesGrid.Initialize(typeof(CProfile), _cProfiles, editorsCollections, dbContext, _dbPath, OpenParentTable);
 
                 // Setup Undo/Redo tracking state
                 SystemProvidersGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
                 ProfileSystemsGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
                 ColorsGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
-                WhipLengthsGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
+                StandartBarLengthsGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
                 ProfileTypesGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
                 ApplicabilitiesGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
                 ProfileArticlesGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
                 CoatingTypesGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
+                CProfilesGrid.ActionTracker.StateChanged += OnAnyTrackerStateChanged;
                 
                 // Сбрасываем состояние кнопок Undo/Redo после refresh
                 OnAnyTrackerStateChanged(false, false);
@@ -125,11 +130,12 @@ namespace AmberBases.UI
             if (SystemProvidersGrid.Visibility == Visibility.Visible) return SystemProvidersGrid;
             if (ProfileSystemsGrid.Visibility == Visibility.Visible) return ProfileSystemsGrid;
             if (ColorsGrid.Visibility == Visibility.Visible) return ColorsGrid;
-            if (WhipLengthsGrid.Visibility == Visibility.Visible) return WhipLengthsGrid;
+            if (StandartBarLengthsGrid.Visibility == Visibility.Visible) return StandartBarLengthsGrid;
             if (ProfileTypesGrid.Visibility == Visibility.Visible) return ProfileTypesGrid;
             if (ApplicabilitiesGrid.Visibility == Visibility.Visible) return ApplicabilitiesGrid;
             if (ProfileArticlesGrid.Visibility == Visibility.Visible) return ProfileArticlesGrid;
             if (CoatingTypesGrid.Visibility == Visibility.Visible) return CoatingTypesGrid;
+            if (CProfilesGrid.Visibility == Visibility.Visible) return CProfilesGrid;
             return null;
         }
 
@@ -167,11 +173,12 @@ namespace AmberBases.UI
                 SystemProvidersGrid.Visibility = Visibility.Collapsed;
                 ProfileSystemsGrid.Visibility = Visibility.Collapsed;
                 ColorsGrid.Visibility = Visibility.Collapsed;
-                WhipLengthsGrid.Visibility = Visibility.Collapsed;
+                StandartBarLengthsGrid.Visibility = Visibility.Collapsed;
                 ProfileTypesGrid.Visibility = Visibility.Collapsed;
                 ApplicabilitiesGrid.Visibility = Visibility.Collapsed;
                 ProfileArticlesGrid.Visibility = Visibility.Collapsed;
                 CoatingTypesGrid.Visibility = Visibility.Collapsed;
+                CProfilesGrid.Visibility = Visibility.Collapsed;
 
                 var grid = this.FindName(gridName) as DictionaryTableControl;
                 if (grid != null)
@@ -195,11 +202,12 @@ namespace AmberBases.UI
             SystemProvidersGrid.ApplyFilter(filterText, "Name");
             ProfileSystemsGrid.ApplyFilter(filterText, "Name");
             ColorsGrid.ApplyFilter(filterText, "ColorName");
-            WhipLengthsGrid.ApplyFilter(filterText, "Length");
+            StandartBarLengthsGrid.ApplyFilter(filterText, "Length");
             ProfileTypesGrid.ApplyFilter(filterText, "Name");
             ApplicabilitiesGrid.ApplyFilter(filterText, "Name");
             ProfileArticlesGrid.ApplyFilter(filterText, "Article");
             CoatingTypesGrid.ApplyFilter(filterText, "Name");
+            CProfilesGrid.ApplyFilter(filterText, "Title");
         }
 
         private void BtnRefresh_Click(object sender, RoutedEventArgs e)
@@ -220,21 +228,23 @@ namespace AmberBases.UI
                 SyncSystemProviders();
                 SyncProfileSystems();
                 SyncColors();
-                SyncWhipLengths();
+                SyncStandartBarLengths();
                 SyncProfileTypes();
                 SyncApplicabilities();
                 SyncProfileArticles();
                 SyncCoatingTypes();
+                SyncCProfiles();
                 
                 // Помечаем все изменения как сохранённые
                 SystemProvidersGrid.ActionTracker.MarkChangesAsSaved();
                 ProfileSystemsGrid.ActionTracker.MarkChangesAsSaved();
                 ColorsGrid.ActionTracker.MarkChangesAsSaved();
-                WhipLengthsGrid.ActionTracker.MarkChangesAsSaved();
+                StandartBarLengthsGrid.ActionTracker.MarkChangesAsSaved();
                 ProfileTypesGrid.ActionTracker.MarkChangesAsSaved();
                 ApplicabilitiesGrid.ActionTracker.MarkChangesAsSaved();
                 ProfileArticlesGrid.ActionTracker.MarkChangesAsSaved();
                 CoatingTypesGrid.ActionTracker.MarkChangesAsSaved();
+                CProfilesGrid.ActionTracker.MarkChangesAsSaved();
                 
                 LoadData(); // reload to get updated IDs from DB
             }
@@ -289,18 +299,18 @@ namespace AmberBases.UI
             }
         }
 
-        private void SyncWhipLengths()
+        private void SyncStandartBarLengths()
         {
-            var dbItems = _dataService.GetWhipLengths(_dbPath);
+            var dbItems = _dataService.GetStandartBarLengths(_dbPath);
             foreach (var item in _whipLengths)
             {
-                if (item.Id == 0) _dataService.AddWhipLength(item, _dbPath);
-                else _dataService.UpdateWhipLength(item, _dbPath);
+                if (item.Id == 0) _dataService.AddStandartBarLength(item, _dbPath);
+                else _dataService.UpdateStandartBarLength(item, _dbPath);
             }
             var currentIds = _whipLengths.Where(x => x.Id > 0).Select(x => x.Id).ToList();
             foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
             {
-                _dataService.DeleteWhipLength(dbItem.Id, _dbPath);
+                _dataService.DeleteStandartBarLength(dbItem.Id, _dbPath);
             }
         }
 
@@ -364,6 +374,21 @@ namespace AmberBases.UI
             }
         }
 
+        private void SyncCProfiles()
+        {
+            var dbItems = _dataService.GetCProfiles(_dbPath);
+            foreach (var item in _cProfiles)
+            {
+                if (item.Id == 0) _dataService.AddCProfile(item, _dbPath);
+                else _dataService.UpdateCProfile(item, _dbPath);
+            }
+            var currentIds = _cProfiles.Where(x => x.Id > 0).Select(x => x.Id).ToList();
+            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
+            {
+                _dataService.DeleteCProfile(dbItem.Id, _dbPath);
+            }
+        }
+
         /// <summary>
         /// Возвращает словарь всех коллекций (для передачи в дочерние окна)
         /// </summary>
@@ -375,7 +400,11 @@ namespace AmberBases.UI
                 { typeof(ProfileSystem), _profileSystems },
                 { typeof(ProfileType), _profileTypes },
                 { typeof(Applicability), _applicabilities },
-                { typeof(CoatingType), _coatingTypes }
+                { typeof(CoatingType), _coatingTypes },
+                { typeof(Color), _colors },
+                { typeof(StandartBarLength), _whipLengths },
+                { typeof(ProfileArticle), _profileArticles },
+                { typeof(CProfile), _cProfiles }
             };
         }
 
@@ -409,11 +438,12 @@ namespace AmberBases.UI
             return SystemProvidersGrid.ActionTracker.HasUnsavedChanges ||
                    ProfileSystemsGrid.ActionTracker.HasUnsavedChanges ||
                    ColorsGrid.ActionTracker.HasUnsavedChanges ||
-                   WhipLengthsGrid.ActionTracker.HasUnsavedChanges ||
+                   StandartBarLengthsGrid.ActionTracker.HasUnsavedChanges ||
                    ProfileTypesGrid.ActionTracker.HasUnsavedChanges ||
                    ApplicabilitiesGrid.ActionTracker.HasUnsavedChanges ||
                    ProfileArticlesGrid.ActionTracker.HasUnsavedChanges ||
-                   CoatingTypesGrid.ActionTracker.HasUnsavedChanges;
+                   CoatingTypesGrid.ActionTracker.HasUnsavedChanges ||
+                   CProfilesGrid.ActionTracker.HasUnsavedChanges;
         }
 
         /// <summary>
@@ -433,6 +463,30 @@ namespace AmberBases.UI
         }
 
         /// <summary>
+        /// Устанавливает режим отображения только таблицы артикулов профилей (для вкладки "Материалы").
+        /// В этом режиме панель переключения таблиц скрыта.
+        /// </summary>
+        public void SetMaterialsMode(bool isMaterials)
+        {
+            _isMaterialsMode = isMaterials;
+            if (_isMaterialsMode)
+            {
+                // Скрываем панель переключения таблиц и показываем только артикулы
+                var selectorBorder = FindName("DictionarySelectorBorder") as Border;
+                if (selectorBorder != null)
+                    selectorBorder.Visibility = Visibility.Collapsed;
+                ShowProfileArticles();
+            }
+            else
+            {
+                // Восстанавливаем панель переключения таблиц
+                var selectorBorder = FindName("DictionarySelectorBorder") as Border;
+                if (selectorBorder != null)
+                    selectorBorder.Visibility = Visibility.Visible;
+            }
+        }
+
+        /// <summary>
         /// Переключает отображение на таблицу материалов (Profile Articles).
         /// </summary>
         public void ShowProfileArticles()
@@ -442,10 +496,11 @@ namespace AmberBases.UI
             SystemProvidersGrid.Visibility = Visibility.Collapsed;
             ProfileSystemsGrid.Visibility = Visibility.Collapsed;
             ColorsGrid.Visibility = Visibility.Collapsed;
-            WhipLengthsGrid.Visibility = Visibility.Collapsed;
+            StandartBarLengthsGrid.Visibility = Visibility.Collapsed;
             ProfileTypesGrid.Visibility = Visibility.Collapsed;
             ApplicabilitiesGrid.Visibility = Visibility.Collapsed;
             CoatingTypesGrid.Visibility = Visibility.Collapsed;
+            CProfilesGrid.Visibility = Visibility.Collapsed;
             
             // Force update undo/redo buttons
             OnAnyTrackerStateChanged(false, false);

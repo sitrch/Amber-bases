@@ -7,7 +7,11 @@ namespace AmberBases.Core.Models.Dictionaries
     /// </summary>
     public class Customer : BaseDictionaryModel
     {
+        #region Основные свойства
+        
         public string Name { get; set; } // В БД FBase это поле "Заказчик"
         public string Address { get; set; }
+        
+        #endregion
     }
 }

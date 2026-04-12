@@ -52,7 +52,7 @@
 - `RestoreOriginalValues()`: Восстанавливает оригинальные значения коллекций из БД.
 
 ### Sync-методы (сохранение в БД)
-- `SyncSystemProviders()`, `SyncProfileSystems()`, `SyncColors()`, `SyncWhipLengths()`, `SyncProfileTypes()`, `SyncApplicabilities()`, `SyncProfileArticles()`, `SyncCoatingTypes()`: Синхронизируют локальные коллекции с БД (добавление новых, обновление существующих, удаление удалённых записей).
+- `SyncSystemProviders()`, `SyncProfileSystems()`, `SyncColors()`, `SyncStandartBarLengths()`, `SyncProfileTypes()`, `SyncApplicabilities()`, `SyncProfileArticles()`, `SyncCoatingTypes()`: Синхронизируют локальные коллекции с БД (добавление новых, обновление существующих, удаление удалённых записей).
 
 ### Навигация
 - `OpenParentTable(object parentItem, Type parentType)`: Открывает новое окно `TableViewWindow` для родительской сущности.

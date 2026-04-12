@@ -7,7 +7,14 @@ namespace AmberBases.Core.Models.Dictionaries
     /// </summary>
     public class CustomerContact : BaseDictionaryModel
     {
+        #region Служебные свойства
+        
         public int CustomerId { get; set; } // В БД FBase это поле "id_Заказчики"
+        
+        #endregion
+
+        #region Основные свойства
+        
         public string JobTitle { get; set; } // Должность
         public string LastName { get; set; } // Фамилия
         public string FirstName { get; set; } // Имя
@@ -16,5 +23,7 @@ namespace AmberBases.Core.Models.Dictionaries
         public string PhoneWork2 { get; set; } // ТелефонРабочий2
         public string PhoneWork3 { get; set; } // ТелефонРабочий3
         public string PhoneHome { get; set; } // ТелефонДомашний
+        
+        #endregion
     }
 }

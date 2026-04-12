@@ -73,5 +73,12 @@ _actionTracker.Redo();
 ## События
 - `StateChanged(bool canUndo, bool canRedo)` — при изменении состояния Undo/Redo
 
+## Фильтрация свойств
+При инициализации `EditActionTracker` исключает следующие свойства из трекинга:
+- **Навигационные свойства** (complex reference types): `ExcludedNavigationProperties` — HashSet с именами навигационных свойств моделей (Manufacturer, System, Color, StandartBarLength, ProfileType, Provider, CoatingType).
+- **Сложные типы**: метод `IsSimpleType(Type)` проверяет, что тип является скалярным (примитивы, string, decimal, DateTime, Guid, enum, Nullable). Сложные классы моделей исключаются.
+
+Это предотвращает ошибки при создании колонок DataTable и редактировании ячеек.
+
 ## DeepClone метод
 Метод `DeepClone(object source)` использует `_entityType` для создания экземпляра, а не `source.GetType()`. Это необходимо, потому что `source` может быть `DataRowView` (из `TrackingTable.DefaultView`), когда DataGrid привязан к отслеживающей таблице.

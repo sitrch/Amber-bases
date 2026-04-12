@@ -36,10 +36,25 @@ namespace AmberBases.Services
                     try { ExecuteNonQuery(connection, "ALTER TABLE Colors ADD COLUMN ColorName TEXT;"); } catch { /* Column exists */ }
                     try { ExecuteNonQuery(connection, "ALTER TABLE Colors ADD COLUMN RAL INTEGER;"); } catch { /* Column exists */ }
                     try { ExecuteNonQuery(connection, "ALTER TABLE Colors ADD COLUMN CoatingTypeId INTEGER;"); } catch { /* Column exists */ }
-                    CreateTable<WhipLength>("WhipLengths", connection);
+                    CreateTable<StandartBarLength>("StandartBarLengths", connection);
                     CreateTable<ProfileType>("ProfileTypes", connection);
                     CreateTable<Applicability>("Applicabilities", connection);
                     CreateTable<ProfileArticle>("ProfileArticles", connection);
+                    // Миграция: новые колонки для ProfileArticles (структура CBaseArticle с FK)
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN ManufacturerId INTEGER;"); } catch { }
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN SystemId INTEGER;"); } catch { }
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN Code TEXT;"); } catch { }
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN BOMArticle TEXT;"); } catch { }
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN Title TEXT;"); } catch { }
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN Description TEXT;"); } catch { }
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN ColorId INTEGER;"); } catch { }
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN CutWisibleWidth REAL;"); } catch { }
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN StandartBarLength REAL;"); } catch { }
+                    // Миграция: добавлена недостающая колонка ProfileTypeId
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN ProfileTypeId INTEGER;"); } catch { }
+                    // Миграция: добавлена колонка StandartBarLengthId (FK на StandartBarLengths)
+                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN StandartBarLengthId INTEGER;"); } catch { }
+                    CreateTable<CProfile>("Profiles", connection);
                     CreateTable<Customer>("Customers", connection);
                     CreateTable<CustomerContact>("CustomerContacts", connection);
                     CreateTable<CoatingType>("CoatingTypes", connection);
@@ -227,11 +242,11 @@ namespace AmberBases.Services
         public void UpdateColor(Color color, string dbPath) => UpdateItem(color, "Colors", dbPath);
         public void DeleteColor(int id, string dbPath) => DeleteItem<Color>(id, "Colors", dbPath);
 
-        // --- WhipLength ---
-        public List<WhipLength> GetWhipLengths(string dbPath) => GetItems<WhipLength>("WhipLengths", dbPath);
-        public void AddWhipLength(WhipLength length, string dbPath) => AddItem(length, "WhipLengths", dbPath);
-        public void UpdateWhipLength(WhipLength length, string dbPath) => UpdateItem(length, "WhipLengths", dbPath);
-        public void DeleteWhipLength(int id, string dbPath) => DeleteItem<WhipLength>(id, "WhipLengths", dbPath);
+        // --- StandartBarLength ---
+        public List<StandartBarLength> GetStandartBarLengths(string dbPath) => GetItems<StandartBarLength>("StandartBarLengths", dbPath);
+        public void AddStandartBarLength(StandartBarLength length, string dbPath) => AddItem(length, "StandartBarLengths", dbPath);
+        public void UpdateStandartBarLength(StandartBarLength length, string dbPath) => UpdateItem(length, "StandartBarLengths", dbPath);
+        public void DeleteStandartBarLength(int id, string dbPath) => DeleteItem<StandartBarLength>(id, "StandartBarLengths", dbPath);
 
         // --- ProfileArticle ---
         public List<ProfileArticle> GetProfileArticles(string dbPath) => GetItems<ProfileArticle>("ProfileArticles", dbPath);
@@ -244,6 +259,12 @@ namespace AmberBases.Services
         public void AddProfileType(ProfileType item, string dbPath) => AddItem(item, "ProfileTypes", dbPath);
         public void UpdateProfileType(ProfileType item, string dbPath) => UpdateItem(item, "ProfileTypes", dbPath);
         public void DeleteProfileType(int id, string dbPath) => DeleteItem<ProfileType>(id, "ProfileTypes", dbPath);
+
+        // --- CProfile ---
+        public List<CProfile> GetCProfiles(string dbPath) => GetItems<CProfile>("Profiles", dbPath);
+        public void AddCProfile(CProfile profile, string dbPath) => AddItem(profile, "Profiles", dbPath);
+        public void UpdateCProfile(CProfile profile, string dbPath) => UpdateItem(profile, "Profiles", dbPath);
+        public void DeleteCProfile(int id, string dbPath) => DeleteItem<CProfile>(id, "Profiles", dbPath);
 
         // --- Applicability ---
         public List<Applicability> GetApplicabilities(string dbPath) => GetItems<Applicability>("Applicabilities", dbPath);

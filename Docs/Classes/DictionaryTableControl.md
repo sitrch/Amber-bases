@@ -19,6 +19,31 @@
 - Поддерживает вложенную навигацию — при клике на FK ячейку вызывает callback для открытия новой `TableViewWindow`.
 - **Поддерживает копирование/вставку диапазонов ячеек в формате TSV (табуляция как разделитель столбцов)** для совместимости с Excel.
 
+### FK-поля (внешние ключи)
+- Свойства с суффиксом `Id` автоматически отображаются как `DataGridComboBoxColumn` с lookup-данными из словаря `allCollections`.
+- **Важное исправление (12.04.2026)**: В методе `SetupColumns()` была убрана строка `if (prop.Name.EndsWith("Id")) continue;`, которая мешала созданию выпадающих списков для FK-полей. Теперь FK-поля правильно определяются через метод `IsForeignKey()` и создаются как `DataGridComboBoxColumn`.
+- Поддерживаются следующие FK-поля:
+  - `SystemProviderId`
+  - `ProfileSystemId` (также `SystemId` для ProfileArticle)
+  - `ProfileTypeId`
+  - `ApplicabilityId`
+  - `CoatingTypeId`
+  - `StandartBarLengthId`
+  - `ColorId` (для ProfileArticle)
+  - `ArticleId` (связь с таблицей ProfileArticle)
+- Все связанные сущности (Color, StandartBarLength, ProfileType, ProfileSystem) имеют свойство `Name` (или вычисляемое свойство `Name`), которое используется в `DisplayMemberPath` для отображения понятных значений в выпадающих списках.
+
+### Порядок столбцов
+- Поле `ArticleId` (если есть) всегда отображается первым в таблице.
+- Остальные столбцы добавляются в порядке объявления свойств в модели.
+- **Логика создания столбцов**:
+  1. Сначала проверяется наличие свойства `ArticleId` и создается ComboBoxColumn для него
+  2. Затем для каждого свойства модели:
+     - Пропускаются технические поля (`Id`, `Position`, `Info`, `ArticleId`)
+     - Пропускаются коллекции и навигационные свойства
+     - Если свойство является FK (заканчивается на "Id" и есть соответствующая lookup-коллекция) - создается `DataGridComboBoxColumn`
+     - Иначе, если свойство не заканчивается на "Id" - создается `DataGridTextColumn`
+
 ## Горячие клавиши (Keyboard Shortcuts)
 
 | Комбинация | Действие |
@@ -27,7 +52,6 @@
 | `Ctrl+Y` | **Повторить отменённое действие (Redo)** |
 | `Ctrl+C` | Копировать выделенные ячейки в буфер (TSV формат) |
 | `Ctrl+V` | Вставить данные из буфера (Excel/TSV) |
-| `Delete` | Удалить выделенные строки (с подтверждением) |
 | `Ctrl+D` | Дублировать выделенную строку (копия без ID) |
 | `Enter` | Открыть ModelEditorWindow для выбранной строки |
 
@@ -48,9 +72,11 @@
 
 ### Инициализация и настройка
 - `Initialize(Type entityType, IList collection, Dictionary<Type, IEnumerable> allCollections, Action<object, Type> openParentCallback)`: Инициализация контрола.
-- `SetupColumns()`: Генерирует столбцы DataGrid на основе свойств модели (DataGridTextColumn или DataGridComboBoxColumn для FK).
-- `IsForeignKey(PropertyInfo prop)`: Проверяет, является ли свойство FK (заканчивается на "Id" или равно "CoatingType").
-- `GetParentEntityType(PropertyInfo prop)`: Определяет тип родительской сущности по FK свойству.
+- `SetupColumns()`: Генерирует столбцы DataGrid на основе свойств модели (DataGridTextColumn или DataGridComboBoxColumn для FK). Исключает навигационные свойства (Manufacturer, System, Color, StandartBarLength, ProfileType, Provider, CoatingType).
+- `AddComboBoxColumn(PropertyInfo prop)`: Вспомогательный метод для добавления FK-столбца с выпадающим списком.
+- `ExcludedNavigationProperties`: HashSet имён навигационных свойств, которые не отображаются как колонки.
+- `IsForeignKey(PropertyInfo prop)`: Проверяет, является ли свойство FK (заканчивается на "Id").
+- `GetParentEntityType(PropertyInfo prop)`: Определяет тип родительской сущности по FK свойству. Включает маппинг для `ArticleId`, `StandartBarLengthId` и других FK.
 - `GetCollectionForType(Type type)`: Возвращает lookup-коллекцию из словаря.
 - `OpenParentTableFromCell(DataGrid dataGrid, string propName)`: Вызывает callback для открытия родительской таблицы.
 - `ApplyFilter()`: Фильтрует строки по тексту поиска через `CollectionViewSource`.
@@ -76,7 +102,7 @@
 - `SetPropertyValue(object, PropertyInfo, string)`: Конвертирует и присваивает значение свойству (поддержка int, double, string, FK lookup по имени).
 
 ### Горячие клавиши
-- `DataGrid_PreviewKeyDown`: Обрабатывает нажатия клавиш (Ctrl+C, Ctrl+V, Delete, Ctrl+D, Enter).
+- `DataGrid_PreviewKeyDown`: Обрабатывает нажатия клавиш (Ctrl+C, Ctrl+V, Ctrl+D, Enter).
 - `DeleteSelectedRows`: Удаляет выбранные строки с подтверждением.
 - `DuplicateSelectedRow`: Создаёт копию выбранной строки через рефлексию (без копирования Id).
 - `OpenEditorForSelectedItem`: Открывает `ModelEditorWindow` для выбранной строки.

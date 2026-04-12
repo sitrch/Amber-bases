@@ -29,11 +29,12 @@
                 <Button Content="System Providers" Click="BtnShowGrid_Click" Tag="SystemProvidersGrid" Margin="2" Padding="5,2"/>
                 <Button Content="Profile Systems" Click="BtnShowGrid_Click" Tag="ProfileSystemsGrid" Margin="2" Padding="5,2"/>
                 <Button Content="Colors" Click="BtnShowGrid_Click" Tag="ColorsGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Whip Lengths" Click="BtnShowGrid_Click" Tag="WhipLengthsGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Whip Lengths" Click="BtnShowGrid_Click" Tag="StandartBarLengthsGrid" Margin="2" Padding="5,2"/>
                 <Button Content="Profile Types" Click="BtnShowGrid_Click" Tag="ProfileTypesGrid" Margin="2" Padding="5,2"/>
                 <Button Content="Applicabilities" Click="BtnShowGrid_Click" Tag="ApplicabilitiesGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Profile Articles" Click="BtnShowGrid_Click" Tag="ProfileArticlesGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Артикулы Профилей" Click="BtnShowGrid_Click" Tag="ProfileArticlesGrid" Margin="2" Padding="5,2"/>
                 <Button Content="Coating Types" Click="BtnShowGrid_Click" Tag="CoatingTypesGrid" Margin="2" Padding="5,2"/>
+                <Button Content="C-Профили" Click="BtnShowGrid_Click" Tag="CProfilesGrid" Margin="2" Padding="5,2"/>
             </StackPanel>
         </Border>
 
@@ -46,11 +47,12 @@
             <local:DictionaryTableControl x:Name="SystemProvidersGrid" Visibility="Visible"/>
             <local:DictionaryTableControl x:Name="ProfileSystemsGrid" Visibility="Collapsed"/>
             <local:DictionaryTableControl x:Name="ColorsGrid" Visibility="Collapsed"/>
-            <local:DictionaryTableControl x:Name="WhipLengthsGrid" Visibility="Collapsed"/>
+            <local:DictionaryTableControl x:Name="StandartBarLengthsGrid" Visibility="Collapsed"/>
             <local:DictionaryTableControl x:Name="ProfileTypesGrid" Visibility="Collapsed"/>
             <local:DictionaryTableControl x:Name="ApplicabilitiesGrid" Visibility="Collapsed"/>
             <local:DictionaryTableControl x:Name="ProfileArticlesGrid" Visibility="Collapsed"/>
             <local:DictionaryTableControl x:Name="CoatingTypesGrid" Visibility="Collapsed"/>
+            <local:DictionaryTableControl x:Name="CProfilesGrid" Visibility="Collapsed"/>
         </Grid>
 
         <!-- Bottom Actions -->

@@ -48,6 +48,13 @@ namespace AmberBases.UI
 
         private Window _parentWindow;
 
+        // Навигационные свойства, которые не должны отображаться как колонки
+        private static readonly HashSet<string> ExcludedNavigationProperties = new HashSet<string>
+        {
+            "Manufacturer", "System", "Color", "StandartBarLength", "ProfileType",
+            "Provider", "CoatingType", "Article"
+        };
+
         public DictionaryTableControl()
         {
             InitializeComponent();
@@ -102,11 +109,6 @@ namespace AmberBases.UI
             else if (isCtrl && e.Key == Key.D)
             {
                 DuplicateSelectedRow();
-                e.Handled = true;
-            }
-            else if (e.Key == Key.Delete && Keyboard.Modifiers == ModifierKeys.None)
-            {
-                DeleteSelectedRows(MainDataGrid);
                 e.Handled = true;
             }
             else if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None)
@@ -274,13 +276,22 @@ namespace AmberBases.UI
                                     if (newValue != DBNull.Value && newValue != null)
                                     {
                                         var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                                        convertedValue = Convert.ChangeType(newValue, targetType);
+                                        
+                                        // Для строковых типов просто присваиваем значение
+                                        if (targetType == typeof(string))
+                                        {
+                                            convertedValue = newValue.ToString();
+                                        }
+                                        else
+                                        {
+                                            convertedValue = Convert.ChangeType(newValue, targetType);
+                                        }
                                     }
                                     prop.SetValue(sourceItem, convertedValue);
                                 }
                                 catch (Exception ex)
                                 {
-                                    Console.WriteLine($"[CellEditEnding] Error setting property {propertyName}: {ex.Message}");
+                                    MessageBox.Show($"Ошибка при сохранении значения в поле '{GetPropertyNameFromColumn(e.Column)}':\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
                                 }
                             }
                         }
@@ -305,17 +316,25 @@ namespace AmberBases.UI
         {
             if (item == null || string.IsNullOrEmpty(propertyName)) return null;
             
-            if (item is System.Data.DataRowView drv)
+            try
             {
-                if (drv.Row.Table.Columns.Contains(propertyName))
+                if (item is System.Data.DataRowView drv)
                 {
-                    return drv[propertyName] == DBNull.Value ? null : drv[propertyName];
+                    if (drv.Row.Table.Columns.Contains(propertyName))
+                    {
+                        return drv[propertyName] == DBNull.Value ? null : drv[propertyName];
+                    }
+                    return null;
                 }
+
+                var prop = item.GetType().GetProperty(propertyName);
+                return prop?.GetValue(item);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetPropertyValue] Error getting property '{propertyName}': {ex.Message}");
                 return null;
             }
-
-            var prop = item.GetType().GetProperty(propertyName);
-            return prop?.GetValue(item);
         }
 
         #endregion
@@ -326,42 +345,31 @@ namespace AmberBases.UI
 
             var properties = _entityType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
+            // Сначала добавляем FK-поле ArticleId, если оно есть
+            var articleIdProp = properties.FirstOrDefault(p => p.Name == "ArticleId");
+            if (articleIdProp != null && IsForeignKey(articleIdProp))
+            {
+                AddComboBoxColumn(articleIdProp);
+            }
+
+            // Затем добавляем остальные свойства
             foreach (var prop in properties)
             {
                 // Пропускаем технические поля
-                if (prop.Name == "Id" || prop.Name == "Position" || prop.Name == "Info")
+                if (prop.Name == "Id" || prop.Name == "Position" || prop.Name == "Info" || prop.Name == "ArticleId" || prop.Name == "StandartBarLengthId")
                     continue;
                 if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType) && prop.PropertyType != typeof(string))
+                    continue;
+                // Пропускаем навигационные свойства (сложные reference-типы)
+                if (ExcludedNavigationProperties.Contains(prop.Name))
                     continue;
 
                 // Проверяем, является ли поле FK
                 if (IsForeignKey(prop))
                 {
-                    var parentType = GetParentEntityType(prop);
-                    if (parentType != null)
-                    {
-                        var comboBoxCol = new DataGridComboBoxColumn
-                        {
-                            Header = GetPropertyDisplayName(prop.Name),
-                            SelectedValuePath = "Id",
-                            DisplayMemberPath = "Name",
-                            Width = DataGridLength.Auto
-                        };
-
-                        // Определяем источник данных для ComboBox
-                        var lookupCollection = GetCollectionForType(parentType);
-                        if (lookupCollection != null)
-                        {
-                            comboBoxCol.ItemsSource = lookupCollection;
-                        }
-
-                        var binding = new System.Windows.Data.Binding(prop.Name) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
-                        comboBoxCol.SelectedValueBinding = binding;
-
-                        MainDataGrid.Columns.Add(comboBoxCol);
-                    }
+                    AddComboBoxColumn(prop);
                 }
-                else
+                else if (!prop.Name.EndsWith("Id")) // Пропускаем только не-FK поля, заканчивающиеся на Id
                 {
                     var textCol = new DataGridTextColumn
                     {
@@ -374,6 +382,33 @@ namespace AmberBases.UI
             }
         }
 
+        private void AddComboBoxColumn(PropertyInfo prop)
+        {
+            var parentType = GetParentEntityType(prop);
+            if (parentType != null)
+            {
+                var comboBoxCol = new DataGridComboBoxColumn
+                {
+                    Header = GetPropertyDisplayName(prop.Name),
+                    SelectedValuePath = "Id",
+                    DisplayMemberPath = "Name",
+                    Width = DataGridLength.Auto
+                };
+
+                // Определяем источник данных для ComboBox
+                var lookupCollection = GetCollectionForType(parentType);
+                if (lookupCollection != null)
+                {
+                    comboBoxCol.ItemsSource = lookupCollection;
+                }
+
+                var binding = new System.Windows.Data.Binding(prop.Name) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
+                comboBoxCol.SelectedValueBinding = binding;
+
+                MainDataGrid.Columns.Add(comboBoxCol);
+            }
+        }
+
         private bool IsForeignKey(PropertyInfo prop)
         {
             if (!prop.Name.EndsWith("Id"))
@@ -383,26 +418,31 @@ namespace AmberBases.UI
             return parentType != null && GetCollectionForType(parentType) != null;
         }
 
-        private Type GetParentEntityType(PropertyInfo prop)
+    private Type GetParentEntityType(PropertyInfo prop)
+    {
+        var navPropName = prop.Name.Replace("Id", "");
+        var navProp = _entityType.GetProperty(navPropName);
+        if (navProp != null && !navProp.PropertyType.IsPrimitive && navProp.PropertyType != typeof(string))
         {
-            var navPropName = prop.Name.Replace("Id", "");
-            var navProp = _entityType.GetProperty(navPropName);
-            if (navProp != null && !navProp.PropertyType.IsPrimitive && navProp.PropertyType != typeof(string))
-            {
-                return navProp.PropertyType;
-            }
-
-            var typeMappings = new Dictionary<string, Type>
-            {
-                { "SystemProviderId", typeof(SystemProvider) },
-                { "ProfileSystemId", typeof(ProfileSystem) },
-                { "ProfileTypeId", typeof(ProfileType) },
-                { "ApplicabilityId", typeof(Applicability) },
-                { "CoatingTypeId", typeof(CoatingType) }
-            };
-
-            return typeMappings.ContainsKey(prop.Name) ? typeMappings[prop.Name] : null;
+            return navProp.PropertyType;
         }
+
+        var typeMappings = new Dictionary<string, Type>
+        {
+            { "SystemProviderId", typeof(SystemProvider) },
+            { "ProfileSystemId", typeof(ProfileSystem) },
+            { "ProfileTypeId", typeof(ProfileType) },
+            { "ApplicabilityId", typeof(Applicability) },
+            { "CoatingTypeId", typeof(CoatingType) },
+            { "ManufacturerId", typeof(SystemProvider) },
+            { "SystemId", typeof(ProfileSystem) },
+            { "ColorId", typeof(Color) },
+            { "StandartBarLengthId", typeof(StandartBarLength) },
+            { "ArticleId", typeof(ProfileArticle) }
+        };
+
+        return typeMappings.ContainsKey(prop.Name) ? typeMappings[prop.Name] : null;
+    }
 
         private IEnumerable GetCollectionForType(Type type)
         {
@@ -421,7 +461,7 @@ namespace AmberBases.UI
                 { "SystemProvider", "Поставщики систем" },
                 { "ProfileSystem", "Профильные системы" },
                 { "Color", "Цвета" },
-                { "WhipLength", "Длины хлыста" },
+                { "StandartBarLength", "Длины хлыста" },
                 { "ProfileType", "Типы профилей" },
                 { "Applicability", "Применимость" },
                 { "ProfileArticle", "Артикулы" },
@@ -432,8 +472,8 @@ namespace AmberBases.UI
             return names.ContainsKey(typeName) ? names[typeName] : typeName;
         }
 
-        private string GetPropertyDisplayName(string propertyName)
-        {
+            private string GetPropertyDisplayName(string propertyName)
+            {
             var names = new Dictionary<string, string>
             {
                 { "Name", "Название" },
@@ -444,16 +484,25 @@ namespace AmberBases.UI
                 { "CoatingTypeId", "Тип покрытия" },
                 { "Length", "Длина" },
                 { "Article", "Артикул" },
+                { "ArticleId", "Артикул" },
                 { "SystemProviderId", "Поставщик систем" },
                 { "ProfileSystemId", "Профильная система" },
                 { "ProfileTypeId", "Тип профиля" },
                 { "ApplicabilityId", "Применимость" },
+                { "ManufacturerId", "Производитель" },
+                { "SystemId", "Система" },
+                { "ColorId", "Цвет" },
+                { "Code", "Код" },
+                { "BOMArticle", "Артикул для заказа" },
+                { "Title", "Название" },
+                { "CutWisibleWidth", "Ширина отображения" },
+                { "StandartBarLengthId", "Стандартная длина" },
                 { "FileName", "Имя файла" },
                 { "Size", "Размер" },
                 { "StepHeight", "Высота ступени" }
             };
-            return names.ContainsKey(propertyName) ? names[propertyName] : propertyName;
-        }
+                return names.ContainsKey(propertyName) ? names[propertyName] : propertyName;
+            }
 
         #region Context Menu Handlers
 
@@ -512,40 +561,34 @@ namespace AmberBases.UI
 
                 if (isFkColumn)
                 {
-                    var typeMappings = new Dictionary<string, Type>
+                    var prop = _entityType.GetProperty(bindingPath);
+                    if (prop != null && IsForeignKey(prop))
                     {
-                        { "SystemProviderId", typeof(SystemProvider) },
-                        { "ProfileSystemId", typeof(ProfileSystem) },
-                        { "ProfileTypeId", typeof(ProfileType) },
-                        { "ApplicabilityId", typeof(Applicability) },
-                        { "CoatingTypeId", typeof(CoatingType) }
-                    };
-
-                    if (typeMappings.ContainsKey(bindingPath))
-                    {
-                        var parentType = typeMappings[bindingPath];
-                        var parentDisplayName = GetDisplayName(parentType.Name);
-
-                        var capturedPropName = bindingPath;
-                        var capturedContextItem = cell.DataContext;
-                        
-                        var openTableMenuItem = new MenuItem
+                        var parentType = GetParentEntityType(prop);
+                        if (parentType != null)
                         {
-                            Header = $"Открыть таблицу \"{parentDisplayName}\"",
-                            Name = "MenuItem_OpenParentTable",
-                            Icon = new TextBlock { Text = "📂" }
-                        };
-                        openTableMenuItem.Click += (s, ev) => OpenParentTableFromCell(dataGrid, capturedPropName, capturedContextItem);
+                            var parentDisplayName = GetDisplayName(parentType.Name);
+                            var capturedPropName = bindingPath;
+                            var capturedContextItem = cell.DataContext;
+                            
+                            var openTableMenuItem = new MenuItem
+                            {
+                                Header = $"Открыть таблицу \"{parentDisplayName}\"",
+                                Name = "MenuItem_OpenParentTable",
+                                Icon = new TextBlock { Text = "📂" }
+                            };
+                            openTableMenuItem.Click += (s, ev) => OpenParentTableFromCell(dataGrid, capturedPropName, capturedContextItem);
 
-                        var editMenuItem = dataGrid.ContextMenu?.Items.OfType<MenuItem>().FirstOrDefault(m => m.Header.ToString() == "Редактировать");
-                        if (editMenuItem != null)
-                        {
-                            var editIndex = dataGrid.ContextMenu.Items.IndexOf(editMenuItem);
-                            dataGrid.ContextMenu.Items.Insert(editIndex + 1, openTableMenuItem);
-                        }
-                        else
-                        {
-                            dataGrid.ContextMenu?.Items.Add(openTableMenuItem);
+                            var editMenuItem = dataGrid.ContextMenu?.Items.OfType<MenuItem>().FirstOrDefault(m => m.Header.ToString() == "Редактировать");
+                            if (editMenuItem != null)
+                            {
+                                var editIndex = dataGrid.ContextMenu.Items.IndexOf(editMenuItem);
+                                dataGrid.ContextMenu.Items.Insert(editIndex + 1, openTableMenuItem);
+                            }
+                            else
+                            {
+                                dataGrid.ContextMenu?.Items.Add(openTableMenuItem);
+                            }
                         }
                     }
                 }
@@ -557,20 +600,22 @@ namespace AmberBases.UI
             var menuItem = sender as MenuItem;
             if (menuItem?.Parent is ContextMenu contextMenu && contextMenu.PlacementTarget is DataGrid dataGrid)
             {
-                var selectedItem = dataGrid.SelectedItem;
-                if (selectedItem == null && dataGrid.SelectedCells.Count > 0)
+                var itemToEdit = dataGrid.SelectedItem;
+                if (itemToEdit == null && dataGrid.SelectedCells.Count > 0)
                 {
-                    selectedItem = dataGrid.SelectedCells[0].Item;
+                    itemToEdit = dataGrid.SelectedCells[0].Item;
                 }
 
-                if (selectedItem == null)
+                // Получаем реальную модель из коллекции, а не DataRowView
+                var modelItem = GetSourceItemFromDataGrid(itemToEdit, dataGrid);
+                if (modelItem == null)
                 {
                     MessageBox.Show("Выберите строку для редактирования.", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                var lookupCollection = GetLookupCollectionForItem(selectedItem);
-                var editorWindow = new ModelEditorWindow(selectedItem, lookupCollection, _allCollections, _dataService, _dbPath)
+                var lookupCollection = GetLookupCollectionForEntityType(modelItem.GetType());
+                var editorWindow = new ModelEditorWindow(modelItem, lookupCollection, _allCollections, _dataService, _dbPath)
                 {
                     Owner = Window.GetWindow(this)
                 };
@@ -578,9 +623,52 @@ namespace AmberBases.UI
                 if (editorWindow.ShowDialog() == true)
                 {
                     dataGrid.CommitEdit(DataGridEditingUnit.Row, true);
-                    dataGrid.Items.Refresh();
+                    _actionTracker.DetectAndRecordChanges();
+                    MainDataGrid.ItemsSource = _actionTracker.TrackingTable.DefaultView;
                 }
             }
+        }
+
+        /// <summary>
+        /// Получает реальный объект модели из DataGrid, корректно обрабатывая DataRowView.
+        /// </summary>
+        private object GetSourceItemFromDataGrid(object dataGridItem, DataGrid dataGrid)
+        {
+            if (dataGridItem == null) return null;
+            
+            // Если это DataRowView (из TrackingTable), получаем индекс и берём из исходной коллекции
+            if (dataGridItem is System.Data.DataRowView rowView)
+            {
+                var table = rowView.Row.Table;
+                if (table != null)
+                {
+                    for (int i = 0; i < table.Rows.Count; i++)
+                    {
+                        if (table.Rows[i] == rowView.Row)
+                        {
+                            return (i >= 0 && i < _collection.Count) ? _collection[i] : null;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            // Обычный объект модели — проверяем, что он есть в коллекции
+            foreach (var item in _collection)
+            {
+                if (item == dataGridItem) return item;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Возвращает lookup-коллекцию для типа объекта (универсальный метод).
+        /// </summary>
+        private IEnumerable GetLookupCollectionForEntityType(Type type)
+        {
+            if (_allCollections == null) return null;
+            _allCollections.TryGetValue(type, out var collection);
+            return collection;
         }
 
         private void OpenParentTableFromCell(DataGrid dataGrid, string propName, object contextItem = null)
@@ -606,64 +694,49 @@ namespace AmberBases.UI
                 return;
             }
 
-            var typeMappings = new Dictionary<string, Type>
-            {
-                { "SystemProviderId", typeof(SystemProvider) },
-                { "ProfileSystemId", typeof(ProfileSystem) },
-                { "ProfileTypeId", typeof(ProfileType) },
-                { "ApplicabilityId", typeof(Applicability) },
-                { "CoatingTypeId", typeof(CoatingType) }
-            };
+            // Используем GetParentEntityType вместо дублирующегося словаря
+            var prop = _entityType.GetProperty(propName);
+            if (prop == null) return;
 
-            if (!typeMappings.ContainsKey(propName)) return;
+            var parentType = GetParentEntityType(prop);
+            if (parentType == null) return;
 
-            var parentType = typeMappings[propName];
-            var parentCollection = GetCollectionForEntityType(parentType);
+            var parentCollection = GetCollectionForType(parentType);
             if (parentCollection == null)
             {
                 MessageBox.Show($"Коллекция для типа {parentType.Name} не найдена.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // Получаем значение FK из selectedItem, учитывая что он может быть DataRowView
-            object propValue = GetFKValueFromItem(selectedItem, propName);
-            
-            if (propValue == null || propValue == DBNull.Value)
+    // Получаем значение FK из selectedItem, учитывая что он может быть DataRowView
+    object propValue = GetFKValueFromItem(selectedItem, propName);
+    
+    int currentId = 0;
+    if (propValue != null && propValue != DBNull.Value)
+    {
+        if (propValue is int intVal) currentId = intVal;
+        else if (propValue is short shortVal) currentId = shortVal;
+        else if (propValue is long longVal) currentId = (int)longVal;
+        else if (int.TryParse(propValue.ToString(), out var parsedId)) currentId = parsedId;
+    }
+
+    object parentItem = null;
+    if (currentId > 0)
+    {
+        foreach (var item in parentCollection)
+        {
+            var itemProp = item.GetType().GetProperty("Id");
+            if (itemProp != null && itemProp.GetValue(item) is int id && id == currentId)
             {
-                MessageBox.Show("Не выбрана запись.", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                parentItem = item;
+                break;
             }
+        }
+    }
 
-            int currentId = 0;
-            if (propValue is int intVal) currentId = intVal;
-            else if (propValue is short shortVal) currentId = shortVal;
-            else if (propValue is long longVal) currentId = (int)longVal;
-            else if (int.TryParse(propValue.ToString(), out var parsedId)) currentId = parsedId;
-
-            if (currentId == 0)
-            {
-                MessageBox.Show("Не выбрана запись.", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            object parentItem = null;
-            foreach (var item in parentCollection)
-            {
-                var itemProp = item.GetType().GetProperty("Id");
-                if (itemProp != null && itemProp.GetValue(item) is int id && id == currentId)
-                {
-                    parentItem = item;
-                    break;
-                }
-            }
-
-            if (parentItem == null)
-            {
-                MessageBox.Show("Не удалось найти родительскую запись.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
-            _openParentTableCallback?.Invoke(parentItem, parentType);
+    // Если parentItem == null (ячейка пустая или запись не найдена), 
+    // всё равно открываем родительскую таблицу, но без выбранной записи
+    _openParentTableCallback?.Invoke(parentItem, parentType);
         }
 
         /// <summary>
@@ -686,26 +759,6 @@ namespace AmberBases.UI
             return prop?.GetValue(item);
         }
 
-        private IEnumerable GetCollectionForEntityType(Type type)
-        {
-            if (type == typeof(SystemProvider)) return _systemProviders;
-            if (type == typeof(ProfileSystem)) return _profileSystems;
-            if (type == typeof(ProfileType)) return _profileTypes;
-            if (type == typeof(Applicability)) return _applicabilities;
-            if (type == typeof(CoatingType)) return _coatingTypes;
-            return null;
-        }
-
-        private IEnumerable GetLookupCollectionForItem(object item)
-        {
-            var type = item.GetType();
-
-            if (type == typeof(ProfileSystem)) return _systemProviders;
-            if (type == typeof(Color)) return _coatingTypes;
-            if (type == typeof(ProfileArticle)) return _profileSystems;
-
-            return null;
-        }
 
         private static T FindVisualParent<T>(DependencyObject child) where T : DependencyObject
         {
@@ -1581,11 +1634,18 @@ namespace AmberBases.UI
 
         private void OpenEditorForSelectedItem()
         {
-            var selectedItem = MainDataGrid.SelectedItem;
-            if (selectedItem == null) return;
+            var itemToEdit = MainDataGrid.SelectedItem;
+            if (itemToEdit == null && MainDataGrid.CurrentCell.IsValid)
+            {
+                itemToEdit = MainDataGrid.CurrentCell.Item;
+            }
 
-            var lookupCollection = GetLookupCollectionForItem(selectedItem);
-            var editorWindow = new ModelEditorWindow(selectedItem, lookupCollection, _allCollections, _dataService, _dbPath)
+            // Получаем реальную модель из коллекции, а не DataRowView
+            var modelItem = GetSourceItemFromDataGrid(itemToEdit, MainDataGrid);
+            if (modelItem == null) return;
+
+            var lookupCollection = GetLookupCollectionForEntityType(modelItem.GetType());
+            var editorWindow = new ModelEditorWindow(modelItem, lookupCollection, _allCollections, _dataService, _dbPath)
             {
                 Owner = Window.GetWindow(this)
             };
@@ -1593,6 +1653,7 @@ namespace AmberBases.UI
             if (editorWindow.ShowDialog() == true)
             {
                 MainDataGrid.CommitEdit(DataGridEditingUnit.Row, true);
+                _actionTracker.DetectAndRecordChanges();
                 MainDataGrid.ItemsSource = _actionTracker.TrackingTable.DefaultView;
             }
         }

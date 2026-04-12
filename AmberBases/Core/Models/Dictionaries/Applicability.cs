@@ -7,6 +7,10 @@ namespace AmberBases.Core.Models.Dictionaries
     /// </summary>
     public class Applicability : BaseDictionaryModel
     {
+        #region Основные свойства
+        
         public string Name { get; set; }
+        
+        #endregion
     }
 }

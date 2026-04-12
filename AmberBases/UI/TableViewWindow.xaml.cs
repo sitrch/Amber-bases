@@ -27,7 +27,7 @@ namespace AmberBases.UI
         private ObservableCollection<SystemProvider> _systemProviders;
         private ObservableCollection<ProfileSystem> _profileSystems;
         private ObservableCollection<AmberBases.Core.Models.Dictionaries.Color> _colors;
-        private ObservableCollection<WhipLength> _whipLengths;
+        private ObservableCollection<StandartBarLength> _StandartBarLengths;
         private ObservableCollection<ProfileType> _profileTypes;
         private ObservableCollection<Applicability> _applicabilities;
         private ObservableCollection<ProfileArticle> _profileArticles;
@@ -62,7 +62,7 @@ namespace AmberBases.UI
             if (_currentEntityType == typeof(SystemProvider)) _systemProviders = _currentCollection as ObservableCollection<SystemProvider>;
             else if (_currentEntityType == typeof(ProfileSystem)) _profileSystems = _currentCollection as ObservableCollection<ProfileSystem>;
             else if (_currentEntityType == typeof(AmberBases.Core.Models.Dictionaries.Color)) _colors = _currentCollection as ObservableCollection<AmberBases.Core.Models.Dictionaries.Color>;
-            else if (_currentEntityType == typeof(WhipLength)) _whipLengths = _currentCollection as ObservableCollection<WhipLength>;
+            else if (_currentEntityType == typeof(StandartBarLength)) _StandartBarLengths = _currentCollection as ObservableCollection<StandartBarLength>;
             else if (_currentEntityType == typeof(ProfileType)) _profileTypes = _currentCollection as ObservableCollection<ProfileType>;
             else if (_currentEntityType == typeof(Applicability)) _applicabilities = _currentCollection as ObservableCollection<Applicability>;
             else if (_currentEntityType == typeof(ProfileArticle)) _profileArticles = _currentCollection as ObservableCollection<ProfileArticle>;
@@ -105,8 +105,8 @@ namespace AmberBases.UI
                 snapshots["ProfileSystems"] = CloneCollection(_profileSystems);
             if (_colors != null)
                 snapshots["Colors"] = CloneCollection(_colors);
-            if (_whipLengths != null)
-                snapshots["WhipLengths"] = CloneCollection(_whipLengths);
+            if (_StandartBarLengths != null)
+                snapshots["StandartBarLengths"] = CloneCollection(_StandartBarLengths);
             if (_profileTypes != null)
                 snapshots["ProfileTypes"] = CloneCollection(_profileTypes);
             if (_applicabilities != null)
@@ -152,7 +152,7 @@ namespace AmberBases.UI
             return HasCollectionChanged("SystemProviders", _systemProviders) ||
                    HasCollectionChanged("ProfileSystems", _profileSystems) ||
                    HasCollectionChanged("Colors", _colors) ||
-                   HasCollectionChanged("WhipLengths", _whipLengths) ||
+                   HasCollectionChanged("StandartBarLengths", _StandartBarLengths) ||
                    HasCollectionChanged("ProfileTypes", _profileTypes) ||
                    HasCollectionChanged("Applicabilities", _applicabilities) ||
                    HasCollectionChanged("ProfileArticles", _profileArticles) ||
@@ -210,7 +210,7 @@ namespace AmberBases.UI
             if (_currentEntityType == typeof(SystemProvider)) freshData = _dataService.GetSystemProviders(_dbPath);
             else if (_currentEntityType == typeof(ProfileSystem)) freshData = _dataService.GetProfileSystems(_dbPath);
             else if (_currentEntityType == typeof(AmberBases.Core.Models.Dictionaries.Color)) freshData = _dataService.GetColors(_dbPath);
-            else if (_currentEntityType == typeof(WhipLength)) freshData = _dataService.GetWhipLengths(_dbPath);
+            else if (_currentEntityType == typeof(StandartBarLength)) freshData = _dataService.GetStandartBarLengths(_dbPath);
             else if (_currentEntityType == typeof(ProfileType)) freshData = _dataService.GetProfileTypes(_dbPath);
             else if (_currentEntityType == typeof(Applicability)) freshData = _dataService.GetApplicabilities(_dbPath);
             else if (_currentEntityType == typeof(ProfileArticle)) freshData = _dataService.GetProfileArticles(_dbPath);
@@ -242,7 +242,7 @@ namespace AmberBases.UI
                 if (_currentEntityType == typeof(SystemProvider)) SyncSystemProviders();
                 else if (_currentEntityType == typeof(ProfileSystem)) SyncProfileSystems();
                 else if (_currentEntityType == typeof(AmberBases.Core.Models.Dictionaries.Color)) SyncColors();
-                else if (_currentEntityType == typeof(WhipLength)) SyncWhipLengths();
+                else if (_currentEntityType == typeof(StandartBarLength)) SyncStandartBarLengths();
                 else if (_currentEntityType == typeof(ProfileType)) SyncProfileTypes();
                 else if (_currentEntityType == typeof(Applicability)) SyncApplicabilities();
                 else if (_currentEntityType == typeof(ProfileArticle)) SyncProfileArticles();
@@ -278,8 +278,8 @@ namespace AmberBases.UI
                 _profileSystems = new ObservableCollection<ProfileSystem>((IEnumerable<ProfileSystem>)ps);
             if (_allCollections.TryGetValue(typeof(Color), out var c))
                 _colors = new ObservableCollection<AmberBases.Core.Models.Dictionaries.Color>((IEnumerable<Color>)c);
-            if (_allCollections.TryGetValue(typeof(WhipLength), out var wl))
-                _whipLengths = new ObservableCollection<WhipLength>((IEnumerable<WhipLength>)wl);
+            if (_allCollections.TryGetValue(typeof(StandartBarLength), out var wl))
+                _StandartBarLengths = new ObservableCollection<StandartBarLength>((IEnumerable<StandartBarLength>)wl);
             if (_allCollections.TryGetValue(typeof(ProfileType), out var pt))
                 _profileTypes = new ObservableCollection<ProfileType>((IEnumerable<ProfileType>)pt);
             if (_allCollections.TryGetValue(typeof(Applicability), out var app))
@@ -297,7 +297,7 @@ namespace AmberBases.UI
             if (_systemProviders != null) dict[typeof(SystemProvider)] = _systemProviders;
             if (_profileSystems != null) dict[typeof(ProfileSystem)] = _profileSystems;
             if (_colors != null) dict[typeof(Color)] = _colors;
-            if (_whipLengths != null) dict[typeof(WhipLength)] = _whipLengths;
+            if (_StandartBarLengths != null) dict[typeof(StandartBarLength)] = _StandartBarLengths;
             if (_profileTypes != null) dict[typeof(ProfileType)] = _profileTypes;
             if (_applicabilities != null) dict[typeof(Applicability)] = _applicabilities;
             if (_profileArticles != null) dict[typeof(ProfileArticle)] = _profileArticles;
@@ -345,7 +345,7 @@ namespace AmberBases.UI
                 { "SystemProvider", "Поставщики систем" },
                 { "ProfileSystem", "Профильные системы" },
                 { "Color", "Цвета" },
-                { "WhipLength", "Длины хлыста" },
+                { "StandartBarLength", "Длины хлыста" },
                 { "ProfileType", "Типы профилей" },
                 { "Applicability", "Применимость" },
                 { "ProfileArticle", "Артикулы" },
@@ -404,19 +404,19 @@ namespace AmberBases.UI
             }
         }
 
-        private void SyncWhipLengths()
+        private void SyncStandartBarLengths()
         {
-            if (_whipLengths == null) return;
-            var dbItems = _dataService.GetWhipLengths(_dbPath);
-            foreach (var item in _whipLengths)
+            if (_StandartBarLengths == null) return;
+            var dbItems = _dataService.GetStandartBarLengths(_dbPath);
+            foreach (var item in _StandartBarLengths)
             {
-                if (item.Id == 0) _dataService.AddWhipLength(item, _dbPath);
-                else _dataService.UpdateWhipLength(item, _dbPath);
+                if (item.Id == 0) _dataService.AddStandartBarLength(item, _dbPath);
+                else _dataService.UpdateStandartBarLength(item, _dbPath);
             }
-            var currentIds = _whipLengths.Where(x => x.Id > 0).Select(x => x.Id).ToList();
+            var currentIds = _StandartBarLengths.Where(x => x.Id > 0).Select(x => x.Id).ToList();
             foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
             {
-                _dataService.DeleteWhipLength(dbItem.Id, _dbPath);
+                _dataService.DeleteStandartBarLength(dbItem.Id, _dbPath);
             }
         }
 
