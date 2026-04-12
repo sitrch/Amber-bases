@@ -54,23 +54,70 @@ namespace AmberBases.Facade
             floor.УровеньЧП = Convert.ToDouble(bottomRow["УровеньЧП"]);
             floor.РядовРигелейИзделия = Convert.ToInt32(bottomRow["РядовРигелейИзделия"]);
 
-            // Заполняем список FloorStruct
-            floor.FloorStructsList = new List<FloorStruct>();
+            // Заполняем список FloorData
+            floor.FloorDataList = new List<FloorData>();
 
             foreach (DataRow row in rows)
             {
-                FloorStruct floorStruct = new FloorStruct();
-                floorStruct.РядФасада = Convert.ToInt32(row["РядФасада"]);
-                floorStruct.РядИзделия = Convert.ToInt32(row["РядИзделия"]);
-                floorStruct.ПоЦентрам = Convert.ToDouble(row["ПоЦентрам"]);
-                floorStruct.Установка = Convert.ToDouble(row["Установка"]);
-                floorStruct.ТипРядовЗаполнений = row["ТипРядовЗаполнений"].ToString();
-                floorStruct.ТипКреплений = row["ТипКреплений"].ToString();
-                floorStruct.Подполки = row["Подполки"].ToString();
-                floorStruct.Опоры = row["Опоры"].ToString();
+                FloorData floorData = new FloorData();
+                floorData.РядФасада = Convert.ToInt32(row["РядФасада"]);
+                floorData.РядИзделия = Convert.ToInt32(row["РядИзделия"]);
+                floorData.ПоЦентрам = Convert.ToDouble(row["ПоЦентрам"]);
+                floorData.Установка = Convert.ToDouble(row["Установка"]);
+                floorData.ТипРядовЗаполнений = row["ТипРядовЗаполнений"].ToString();
+                floorData.ТипКреплений = row["ТипКреплений"].ToString();
+                floorData.Подполки = row["Подполки"].ToString();
+                floorData.Опоры = row["Опоры"].ToString();
+                floor.FloorDataList.Add(floorData);
             }
 
             return floor;
+        }
+
+        /// <summary>
+        /// Извлекает данные о ряде ригеля для заданного этажа и ряда фасада
+        /// </summary>
+        /// <param name="dataSet">DataSet с загруженными данными из Excel</param>
+        /// <param name="плоскость">Идентификатор плоскости (например, "(5-1)-(5-6)")</param>
+        /// <param name="этаж">Номер этажа</param>
+        /// <param name="рядФасада">Номер ряда фасада</param>
+        /// <returns>Объект FloorData с данными о ряде ригеля, или null если не найдено</returns>
+        public static FloorData GetFloorData(DataSet dataSet, string плоскость, int этаж, int рядФасада)
+        {
+            // Получаем таблицу "РядыРигелей" для указанной плоскости
+            string tableName = $"РядыРигелей{плоскость}";
+            DataTable рядыРигелей = dataSet.Tables.Contains(tableName) ? dataSet.Tables[tableName] : null;
+
+            if (рядыРигелей == null)
+            {
+                return null;
+            }
+
+            // Фильтрация строк по заданному этажу и ряду фасада
+            DataRow[] rows = рядыРигелей.Select($"Этаж = { этаж} AND РядФасада = { рядФасада}", "РядИзделия ASC");
+
+            if (rows.Length == 0)
+            {
+                return null;
+            }
+
+            // Берем первую строку (должна быть одна)
+            DataRow row = rows[0];
+
+            // Создаем объект FloorData
+            FloorData floorData = new FloorData();
+            floorData.РядФасада = Convert.ToInt32(row["РядФасада"]);
+            floorData.РядИзделия = Convert.ToInt32(row["РядИзделия"]);
+            floorData.ПоЦентрам = Convert.ToDouble(row["ПоЦентрам"]);
+            floorData.Установка = Convert.ToDouble(row["Установка"]);
+            floorData.ТипРядовЗаполнений = row["ТипРядовЗаполнений"].ToString();
+            floorData.ТипКреплений = row["ТипКреплений"].ToString();
+            floorData.Подполки = row["Подполки"].ToString();
+            floorData.Опоры = row["Опоры"].ToString();
+            floorData.НизОкна = Convert.ToDouble(row["НизОкна"]);
+            floorData.РучкаОтНизаОкна = Convert.ToDouble(row["РучкаОтНизаОкна"]);
+
+            return floorData;
         }
     }
 }

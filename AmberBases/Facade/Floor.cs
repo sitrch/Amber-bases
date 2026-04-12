@@ -15,13 +15,11 @@ namespace AmberBases.Facade
         public double Зазор;        
         public string ТипРядовСтойки;
         public double УровеньЧП; // Уровень чистового пола
-        public List<FloorStruct> FloorStructsList;
+        public List<FloorData> FloorDataList;
         public int РядовРигелейИзделия;
-
-
     }
 
-    public struct FloorStruct
+    public class FloorData
     {
         public int РядФасада;
         public int РядИзделия;
@@ -33,6 +31,5 @@ namespace AmberBases.Facade
         public string Опоры;
         public double НизОкна;
         public double РучкаОтНизаОкна;
-
     }
 }
