@@ -1,3 +1,4 @@
+using AmberBases.Dataset;
 using AmberBases.Facade;
 using System;
 using System.Collections.Generic;
@@ -13,11 +14,21 @@ namespace AmberBases.Facade
         /// <summary>
         /// Извлекает данные о рядах ригелей для заданного этажа
         /// </summary>
-        /// <param name="рядыРигелей">Таблица "РядыРигелей"</param>
+        /// <param name="dataSet">DataSet с загруженными данными из Excel</param>
+        /// <param name="плоскость">Идентификатор плоскости (например, "(5-1)-(5-6)")</param>
         /// <param name="этаж">Номер этажа</param>
         /// <returns>Объект CFloor, содержащий данные о рядах ригелей</returns>
-        public static CFloor GetFloor(DataTable рядыРигелей, int этаж)
+        public static CFloor GetFloor(DataSet dataSet, string плоскость, int этаж)
         {
+            // Получаем таблицу "РядыРигелей" для указанной плоскости
+            string tableName = $"РядыРигелей{плоскость}";
+            DataTable рядыРигелей = dataSet.Tables.Contains(tableName) ? dataSet.Tables[tableName] : null;
+
+            if (рядыРигелей == null)
+            {
+                return null;
+            }
+
             // Фильтрация строк по заданному этажу
             DataRow[] rows = рядыРигелей.Select($"Этаж = { этаж}", "РядИзделия ASC");
 
@@ -34,6 +45,7 @@ namespace AmberBases.Facade
             DataRow bottomRow = rows[0];
 
             // Заполняем поля первого уровня значениями из самого верхнего ряда
+            floor.Плоскость = плоскость;
             floor.Этаж = этаж;
             floor.НизСтойки = Convert.ToDouble(bottomRow["НизСтойки"]);
             floor.ВысотаСтойки = Convert.ToDouble(bottomRow["ВысотаСтойки"]);

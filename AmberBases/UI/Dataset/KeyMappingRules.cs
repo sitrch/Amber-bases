@@ -17,5 +17,17 @@ namespace AmberBases.Dataset
         {
             return floorTable;
         }
+
+        /// <summary>
+        /// Получает таблицу "РядыРигелей" для указанной плоскости из DataSet.
+        /// </summary>
+        /// <param name="dataSet">DataSet с загруженными данными из Excel</param>
+        /// <param name="плоскость">Идентификатор плоскости (например, "(5-1)-(5-6)")</param>
+        /// <returns>DataTable таблица "РядыРигелей{плоскость}" или null, если таблица не найдена</returns>
+        public static DataTable GetРядыРигелейForPlane(DataSet dataSet, string плоскость)
+        {
+            string tableName = $"РядыРигелей{плоскость}";
+            return dataSet.Tables.Contains(tableName) ? dataSet.Tables[tableName] : null;
+        }
     }
 }
