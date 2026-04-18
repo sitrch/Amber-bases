@@ -96,23 +96,39 @@ public static class DisplayNameProvider
     public static string GetTypeName(string typeName) =>
         TypeNames.TryGetValue(typeName, out var name) ? name : typeName;
 
-    public static string GetPropertyName(string propertyName)
+    public static string GetPropertyName(string propertyName) =>
+        GetPropertyName(null, propertyName);
+
+    public static string GetPropertyName(string entityType, string propertyName)
     {
         Initialize();
-        var info = GetColumnInfo(propertyName);
+        var info = GetColumnInfo(entityType, propertyName);
         return info?.Name ?? propertyName;
     }
 
-    public static bool IsPropertyVisible(string propertyName)
+    public static bool IsPropertyVisible(string propertyName) =>
+        IsPropertyVisible(null, propertyName);
+
+    public static bool IsPropertyVisible(string entityType, string propertyName)
     {
         Initialize();
-        var info = GetColumnInfo(propertyName);
+        var info = GetColumnInfo(entityType, propertyName);
         return info?.Visible ?? true;
     }
 
-    public static ColumnInfo GetColumnInfo(string propertyName)
+    public static ColumnInfo GetColumnInfo(string propertyName) =>
+        GetColumnInfo(null, propertyName);
+
+    public static ColumnInfo GetColumnInfo(string entityType, string propertyName)
     {
         Initialize();
+
+        if (entityType != null)
+        {
+            var key = (entityType, propertyName);
+            if (_propertyCache.TryGetValue(key, out var info))
+                return info;
+        }
 
         foreach (var kvp in _propertyCache)
         {
@@ -121,13 +137,6 @@ public static class DisplayNameProvider
         }
 
         return new ColumnInfo(propertyName, true);
-    }
-
-    public static ColumnInfo GetPropertyInfo(string entityType, string propertyName)
-    {
-        Initialize();
-        var key = (entityType, propertyName);
-        return _propertyCache.TryGetValue(key, out var info) ? info : null;
     }
 
     public static string GetTypeName<T>() => GetTypeName(typeof(T).Name);

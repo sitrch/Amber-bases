@@ -441,15 +441,11 @@ namespace AmberBases.UI
             // Затем добавляем остальные свойства
             foreach (var prop in properties)
             {
-                // Пропускаем технические поля
-                if (prop.Name == "Id" || prop.Name == "Position" || prop.Name == "Info" || prop.Name == "ArticleId" || prop.Name == "StandartBarLengthId")
-                    continue;
+                // Проверяем видимость через атрибуты
                 if (!ColumnSettings.IsColumnVisible(_entityType.Name, prop.Name))
                     continue;
+                // Пропускаем коллекции
                 if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType) && prop.PropertyType != typeof(string))
-                    continue;
-                // Пропускаем навигационные свойства (сложные reference-типы)
-                if (ColumnSettings.IsNavPropExcluded(_entityType.Name, prop.Name))
                     continue;
 
                 // Проверяем, является ли поле FK
