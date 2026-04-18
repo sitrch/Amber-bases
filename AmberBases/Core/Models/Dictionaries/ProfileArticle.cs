@@ -44,7 +44,7 @@ namespace AmberBases.Core.Models.Dictionaries
         /// <summary>
         /// Ширина отображения в раскрое.
         /// </summary>
-        [ColumnDisplayName("Ширина реза")]
+        [ColumnDisplayName("Ширина раскроя")]
         public double CutWisibleWidth { get; set; }
 
         /// <summary>
@@ -55,25 +55,25 @@ namespace AmberBases.Core.Models.Dictionaries
         /// <summary>
         /// Профильная система (FK на ProfileSystem).
         /// </summary>
-        [ColumnDisplayName("Система")]
+        [ColumnDisplayName("Система", false)]
         public ProfileSystem System { get; set; }
 
         /// <summary>
         /// Цвет (FK на Color).
         /// </summary>
-        [ColumnDisplayName("Цвет")]
+        [ColumnDisplayName("Цвет", false)]
         public Color Color { get; set; }
 
         /// <summary>
         /// Стандартная длина хлыста (FK на StandartBarLength).
         /// </summary>
-        [ColumnDisplayName("Длина хлыста")]
+        [ColumnDisplayName("Длина хлыста", false)]
         public StandartBarLength StandartBarLength { get; set; }
 
         /// <summary>
         /// Тип профиля (FK на ProfileType).
         /// </summary>
-        [ColumnDisplayName("Тип профиля")]
+        [ColumnDisplayName("Тип профиля", false)]
         public ProfileType ProfileType { get; set; }
 
         #endregion
@@ -83,31 +83,31 @@ namespace AmberBases.Core.Models.Dictionaries
         /// <summary>
         /// ID производителя (FK на SystemProvider).
         /// </summary>
-        [ColumnDisplayName("Производитель", false)]
+        [ColumnDisplayName("Производитель")]
         public int? ManufacturerId { get; set; }
 
         /// <summary>
         /// ID профильной системы (FK на ProfileSystem).
         /// </summary>
-        [ColumnDisplayName("Система", false)]
+        [ColumnDisplayName("Система")]
         public int? SystemId { get; set; }
 
         /// <summary>
         /// ID цвета (FK на Color).
         /// </summary>
-        [ColumnDisplayName("Цвет", false)]
+        [ColumnDisplayName("Цвет")]
         public int? ColorId { get; set; }
 
         /// <summary>
         /// ID стандартной длины хлыста (FK на StandartBarLength).
         /// </summary>
-        [ColumnDisplayName("Длина хлыста", false)]
+        [ColumnDisplayName("Длина хлыста")]
         public int? StandartBarLengthId { get; set; }
 
         /// <summary>
         /// ID типа профиля (FK на ProfileType).
         /// </summary>
-        [ColumnDisplayName("Тип профиля", false)]
+        [ColumnDisplayName("Тип профиля")]
         public int? ProfileTypeId { get; set; }
 
         #endregion

@@ -11,9 +11,6 @@ namespace AmberBases.Core.Models.Dictionaries
         [ColumnDisplayName("ID", false)]
         public int Id { get; set; }
 
-        [ColumnDisplayName("Позиция")]
-        public int Position { get; set; }
-
         [ColumnDisplayName("Информация")]
         public string Info { get; set; }
     }
