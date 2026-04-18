@@ -441,9 +441,6 @@ namespace AmberBases.UI
             // Затем добавляем остальные свойства
             foreach (var prop in properties)
             {
-                // Проверяем видимость через атрибуты
-                if (!ColumnSettings.IsColumnVisible(_entityType.Name, prop.Name))
-                    continue;
                 // Пропускаем коллекции
                 if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType) && prop.PropertyType != typeof(string))
                     continue;
@@ -455,6 +452,10 @@ namespace AmberBases.UI
                 }
                 else if (!prop.Name.EndsWith("Id")) // Пропускаем только не-FK поля, заканчивающиеся на Id
                 {
+                    // Проверяем видимость через атрибуты для текстовых полей
+                    if (!ColumnSettings.IsColumnVisible(_entityType.Name, prop.Name))
+                        continue;
+
                     var textCol = new DataGridTextColumn
                     {
                         Header = ColumnSettings.GetColumnName(_entityType.Name, prop.Name),
