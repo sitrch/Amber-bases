@@ -524,7 +524,6 @@ namespace AmberBases.UI
                     Width = DataGridLength.Auto
                 };
 
-                // Определяем источник данных для ComboBox
                 var lookupCollection = GetCollectionForType(parentType);
                 if (lookupCollection != null)
                 {
@@ -534,7 +533,22 @@ namespace AmberBases.UI
                 var binding = new System.Windows.Data.Binding(prop.Name) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
                 comboBoxCol.SelectedValueBinding = binding;
 
+                var editingStyle = new Style(typeof(ComboBox));
+                editingStyle.Setters.Add(new EventSetter(System.Windows.Controls.Primitives.Selector.SelectionChangedEvent, new SelectionChangedEventHandler(ComboBox_SelectionChanged)));
+                comboBoxCol.EditingElementStyle = editingStyle;
+
                 MainDataGrid.Columns.Add(comboBoxCol);
+            }
+        }
+
+        private void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox comboBox && comboBox.IsLoaded)
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    MainDataGrid.CommitEdit(DataGridEditingUnit.Row, true);
+                }), System.Windows.Threading.DispatcherPriority.Background);
             }
         }
 
@@ -853,6 +867,8 @@ namespace AmberBases.UI
         {
             CommitEdit();
         }
+
+        
 
         private void MainDataGrid_ColumnReordered(object sender, DataGridColumnEventArgs e)
         {

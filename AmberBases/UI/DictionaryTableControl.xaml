@@ -49,6 +49,7 @@
                   SelectionMode="Extended"
                   SelectionUnit="CellOrRowHeader"
                   SelectedCellsChanged="MainDataGrid_SelectedCellsChanged"
+                  
                   PreviewMouseRightButtonDown="DataGrid_PreviewMouseRightButtonDown"
                   PreviewKeyDown="DataGrid_PreviewKeyDown">
             <DataGrid.ContextMenu>

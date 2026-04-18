@@ -50,6 +50,7 @@ namespace AmberBases.Core.Models.Dictionaries
         /// <summary>
         /// Computed-свойство для совместимости с FK lookup (DisplayMemberPath = "Name").
         /// </summary>
+        [ColumnDisplayName("Name", false)]
         public string Name => Article;
 
         /// <summary>
