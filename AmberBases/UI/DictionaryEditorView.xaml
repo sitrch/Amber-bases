@@ -10,40 +10,29 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition x:Name="DictionarySelectorRow" Height="Auto"/>
-            <RowDefinition Height="5"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Top ToolBar / Search -->
-        <Border Grid.Row="0" Background="#f0f0f0" Padding="5">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Search:" VerticalAlignment="Center" Margin="5"/>
-                <TextBox x:Name="SearchTextBox" Width="200" Margin="5" TextChanged="SearchTextBox_TextChanged"/>
-            </StackPanel>
-        </Border>
-
         <!-- Dictionary selector -->
-        <Border x:Name="DictionarySelectorBorder" Grid.Row="1" Background="#e0e0e0" Padding="5">
+        <Border x:Name="DictionarySelectorBorder" Grid.Row="0" Background="#f0f0f0" Padding="5">
             <StackPanel Orientation="Horizontal">
-                <Button Content="System Providers" Click="BtnShowGrid_Click" Tag="SystemProvidersGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Profile Systems" Click="BtnShowGrid_Click" Tag="ProfileSystemsGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Colors" Click="BtnShowGrid_Click" Tag="ColorsGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Whip Lengths" Click="BtnShowGrid_Click" Tag="StandartBarLengthsGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Profile Types" Click="BtnShowGrid_Click" Tag="ProfileTypesGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Applicabilities" Click="BtnShowGrid_Click" Tag="ApplicabilitiesGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Поставщики" Click="BtnShowGrid_Click" Tag="SystemProvidersGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Системы профилей" Click="BtnShowGrid_Click" Tag="ProfileSystemsGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Цвета" Click="BtnShowGrid_Click" Tag="ColorsGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Хлыст" Click="BtnShowGrid_Click" Tag="StandartBarLengthsGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Типы профилей" Click="BtnShowGrid_Click" Tag="ProfileTypesGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Применимости" Click="BtnShowGrid_Click" Tag="ApplicabilitiesGrid" Margin="2" Padding="5,2"/>
                 <Button Content="Артикулы Профилей" Click="BtnShowGrid_Click" Tag="ProfileArticlesGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Coating Types" Click="BtnShowGrid_Click" Tag="CoatingTypesGrid" Margin="2" Padding="5,2"/>
-                <Button Content="C-Профили" Click="BtnShowGrid_Click" Tag="CProfilesGrid" Margin="2" Padding="5,2"/>
+                <Button Content="Типы покрытий" Click="BtnShowGrid_Click" Tag="CoatingTypesGrid" Margin="2" Padding="5,2"/>
+                <Button Content="С-Proфили" Click="BtnShowGrid_Click" Tag="CProfilesGrid" Margin="2" Padding="5,2"/>
             </StackPanel>
         </Border>
 
-        <!-- GridSplitter для регулировки высоты панели справочников -->
-        <GridSplitter x:Name="DictionarySelectorSplitter" Grid.Row="2" Height="5" HorizontalAlignment="Stretch" 
-                      Background="Transparent" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"/>
+        
 
         <!-- Grids -->
-        <Grid Grid.Row="3" Margin="5">
+        <Grid Grid.Row="2" Margin="5">
             <local:DictionaryTableControl x:Name="SystemProvidersGrid" Visibility="Visible"/>
             <local:DictionaryTableControl x:Name="ProfileSystemsGrid" Visibility="Collapsed"/>
             <local:DictionaryTableControl x:Name="ColorsGrid" Visibility="Collapsed"/>
@@ -56,7 +45,7 @@
         </Grid>
 
         <!-- Bottom Actions -->
-        <Border Grid.Row="4" Background="#f0f0f0" Padding="5">
+        <Border Grid.Row="3" Background="#f0f0f0" Padding="5">
             <StackPanel Orientation="Horizontal">
                 <Button x:Name="UndoBtn" Content="Undo" Click="UndoBtn_Click" Margin="5" Padding="10,5" IsEnabled="False"/>
                 <Button x:Name="RedoBtn" Content="Redo" Click="RedoBtn_Click" Margin="5" Padding="10,5" IsEnabled="False"/>

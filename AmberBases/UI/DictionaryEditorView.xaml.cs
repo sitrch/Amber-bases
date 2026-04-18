@@ -50,6 +50,8 @@ namespace AmberBases.UI
             _dataService.InitializeDatabase(_dbPath);
         }
 
+        public InterfaceSettingsTracker SettingsTracker => _settingsTracker;
+
         public void InitControl()
         {
             // Инициализируем отслеживание высоты панели справочников
@@ -61,7 +63,8 @@ namespace AmberBases.UI
                 _settingsTracker.TrackPanelHeight(panel, rowDef, splitter, "DictionaryEditor");
             }
             
-            LoadData();
+            // LoadData должен выполниться асинхронно, чтобы избежать конфликта с Dispatcher
+            Dispatcher.BeginInvoke(new Action(LoadData), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void LoadData()
@@ -111,7 +114,7 @@ namespace AmberBases.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error loading dictionaries: " + ex.Message);
+                Dispatcher.Invoke(() => MessageBox.Show("Error loading dictionaries: " + ex.Message));
             }
         }
 
@@ -160,7 +163,7 @@ namespace AmberBases.UI
             {
                 // Проверяем несохранённые изменения в текущей активной таблице
                 var activeGrid = GetActiveGrid();
-                if (activeGrid != null && activeGrid.ActionTracker.HasUnsavedChanges)
+                if (activeGrid?.ActionTracker?.HasUnsavedChanges == true)
                 {
                     MessageBox.Show(
                         "Есть несохранённые изменения. Сохраните или отмените изменения перед переключением.",
@@ -197,17 +200,25 @@ namespace AmberBases.UI
 
         private void ApplyFilter()
         {
-            string filterText = SearchTextBox.Text.ToLower();
-            
-            SystemProvidersGrid.ApplyFilter(filterText, "Name");
-            ProfileSystemsGrid.ApplyFilter(filterText, "Name");
-            ColorsGrid.ApplyFilter(filterText, "ColorName");
-            StandartBarLengthsGrid.ApplyFilter(filterText, "Length");
-            ProfileTypesGrid.ApplyFilter(filterText, "Name");
-            ApplicabilitiesGrid.ApplyFilter(filterText, "Name");
-            ProfileArticlesGrid.ApplyFilter(filterText, "Article");
-            CoatingTypesGrid.ApplyFilter(filterText, "Name");
-            CProfilesGrid.ApplyFilter(filterText, "Title");
+            var activeGrid = GetActiveGrid();
+            if (activeGrid == null) return;
+
+            var searchTextBox = activeGrid.FindName("SearchTextBox") as System.Windows.Controls.TextBox;
+            var searchColumnCombo = activeGrid.FindName("SearchColumnCombo") as System.Windows.Controls.ComboBox;
+
+            string filterText = searchTextBox?.Text?.ToLower() ?? "";
+            string selectedColumnName = null;
+
+            if (searchColumnCombo?.SelectedItem is System.Windows.Controls.ComboBoxItem selectedItem)
+            {
+                var tag = selectedItem.Tag as string;
+                if (!string.IsNullOrEmpty(tag))
+                {
+                    selectedColumnName = tag;
+                }
+            }
+
+            activeGrid.ApplyFilter(filterText, selectedColumnName);
         }
 
         private void BtnRefresh_Click(object sender, RoutedEventArgs e)
@@ -219,23 +230,12 @@ namespace AmberBases.UI
         {
             try
             {
-                // Принудительно убираем фокус с текущего элемента, чтобы сработал UpdateSourceTrigger=LostFocus
                 Keyboard.ClearFocus();
 
-                // Force commit edit on the active grid
                 GetActiveGrid()?.CommitEdit();
 
-                SyncSystemProviders();
-                SyncProfileSystems();
-                SyncColors();
-                SyncStandartBarLengths();
-                SyncProfileTypes();
-                SyncApplicabilities();
-                SyncProfileArticles();
-                SyncCoatingTypes();
-                SyncCProfiles();
+                SyncAllCollections();
                 
-                // Помечаем все изменения как сохранённые
                 SystemProvidersGrid.ActionTracker.MarkChangesAsSaved();
                 ProfileSystemsGrid.ActionTracker.MarkChangesAsSaved();
                 ColorsGrid.ActionTracker.MarkChangesAsSaved();
@@ -245,8 +245,8 @@ namespace AmberBases.UI
                 ProfileArticlesGrid.ActionTracker.MarkChangesAsSaved();
                 CoatingTypesGrid.ActionTracker.MarkChangesAsSaved();
                 CProfilesGrid.ActionTracker.MarkChangesAsSaved();
-                
-                LoadData(); // reload to get updated IDs from DB
+
+                RefreshGridsWithCurrentCollections();
             }
             catch (Exception ex)
             {
@@ -254,139 +254,48 @@ namespace AmberBases.UI
             }
         }
 
-        private void SyncSystemProviders()
+        private void RefreshGridsWithCurrentCollections()
         {
-            var dbItems = _dataService.GetSystemProviders(_dbPath);
-            foreach (var item in _systemProviders)
+            var editorsCollections = GetAllCollectionsForEditor();
+            var dbContext = _dataService;
+
+            SystemProvidersGrid.RefreshFromCollection(_systemProviders, editorsCollections, dbContext);
+            ProfileSystemsGrid.RefreshFromCollection(_profileSystems, editorsCollections, dbContext);
+            ColorsGrid.RefreshFromCollection(_colors, editorsCollections, dbContext);
+            StandartBarLengthsGrid.RefreshFromCollection(_whipLengths, editorsCollections, dbContext);
+            ProfileTypesGrid.RefreshFromCollection(_profileTypes, editorsCollections, dbContext);
+            ApplicabilitiesGrid.RefreshFromCollection(_applicabilities, editorsCollections, dbContext);
+            ProfileArticlesGrid.RefreshFromCollection(_profileArticles, editorsCollections, dbContext);
+            CoatingTypesGrid.RefreshFromCollection(_coatingTypes, editorsCollections, dbContext);
+            CProfilesGrid.RefreshFromCollection(_cProfiles, editorsCollections, dbContext);
+        }
+
+        private void SyncCollection<T>(ICollection<T> collection) where T : BaseDictionaryModel, new()
+        {
+            var dbItems = _dataService.GetItems<T>(_dbPath);
+            foreach (var item in collection)
             {
-                if (item.Id == 0) _dataService.AddSystemProvider(item, _dbPath);
-                else _dataService.UpdateSystemProvider(item, _dbPath);
+                if (item.Id == 0) _dataService.AddItem(item, _dbPath);
+                else _dataService.UpdateItem(item, _dbPath);
             }
-            var currentIds = _systemProviders.Where(x => x.Id > 0).Select(x => x.Id).ToList();
+            var currentIds = collection.Where(x => x.Id > 0).Select(x => x.Id).ToList();
             foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
             {
-                _dataService.DeleteSystemProvider(dbItem.Id, _dbPath);
+                _dataService.DeleteItem<T>(dbItem.Id, _dbPath);
             }
         }
 
-        private void SyncProfileSystems()
+        private void SyncAllCollections()
         {
-            var dbItems = _dataService.GetProfileSystems(_dbPath);
-            foreach (var item in _profileSystems)
-            {
-                if (item.Id == 0) _dataService.AddProfileSystem(item, _dbPath);
-                else _dataService.UpdateProfileSystem(item, _dbPath);
-            }
-            var currentIds = _profileSystems.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteProfileSystem(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncColors()
-        {
-            var dbItems = _dataService.GetColors(_dbPath);
-            foreach (var item in _colors)
-            {
-                if (item.Id == 0) _dataService.AddColor(item, _dbPath);
-                else _dataService.UpdateColor(item, _dbPath);
-            }
-            var currentIds = _colors.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteColor(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncStandartBarLengths()
-        {
-            var dbItems = _dataService.GetStandartBarLengths(_dbPath);
-            foreach (var item in _whipLengths)
-            {
-                if (item.Id == 0) _dataService.AddStandartBarLength(item, _dbPath);
-                else _dataService.UpdateStandartBarLength(item, _dbPath);
-            }
-            var currentIds = _whipLengths.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteStandartBarLength(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncProfileArticles()
-        {
-            var dbItems = _dataService.GetProfileArticles(_dbPath);
-            foreach (var item in _profileArticles)
-            {
-                if (item.Id == 0) _dataService.AddProfileArticle(item, _dbPath);
-                else _dataService.UpdateProfileArticle(item, _dbPath);
-            }
-            var currentIds = _profileArticles.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteProfileArticle(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncProfileTypes()
-        {
-            var dbItems = _dataService.GetProfileTypes(_dbPath);
-            foreach (var item in _profileTypes)
-            {
-                if (item.Id == 0) _dataService.AddProfileType(item, _dbPath);
-                else _dataService.UpdateProfileType(item, _dbPath);
-            }
-            var currentIds = _profileTypes.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteProfileType(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncApplicabilities()
-        {
-            var dbItems = _dataService.GetApplicabilities(_dbPath);
-            foreach (var item in _applicabilities)
-            {
-                if (item.Id == 0) _dataService.AddApplicability(item, _dbPath);
-                else _dataService.UpdateApplicability(item, _dbPath);
-            }
-            var currentIds = _applicabilities.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteApplicability(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncCoatingTypes()
-        {
-            var dbItems = _dataService.GetCoatingTypes(_dbPath);
-            foreach (var item in _coatingTypes)
-            {
-                if (item.Id == 0) _dataService.AddCoatingType(item, _dbPath);
-                else _dataService.UpdateCoatingType(item, _dbPath);
-            }
-            var currentIds = _coatingTypes.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteCoatingType(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncCProfiles()
-        {
-            var dbItems = _dataService.GetCProfiles(_dbPath);
-            foreach (var item in _cProfiles)
-            {
-                if (item.Id == 0) _dataService.AddCProfile(item, _dbPath);
-                else _dataService.UpdateCProfile(item, _dbPath);
-            }
-            var currentIds = _cProfiles.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteCProfile(dbItem.Id, _dbPath);
-            }
+            SyncCollection(_systemProviders);
+            SyncCollection(_profileSystems);
+            SyncCollection(_colors);
+            SyncCollection(_whipLengths);
+            SyncCollection(_profileArticles);
+            SyncCollection(_profileTypes);
+            SyncCollection(_applicabilities);
+            SyncCollection(_coatingTypes);
+            SyncCollection(_cProfiles);
         }
 
         /// <summary>
@@ -431,19 +340,22 @@ namespace AmberBases.UI
         }
 
         /// <summary>
-        /// Проверяет, есть ли несохранённые изменения в любой из таблиц справочников.
-        /// </summary>
         public bool HasAnyUnsavedChanges()
         {
-            return SystemProvidersGrid.ActionTracker.HasUnsavedChanges ||
-                   ProfileSystemsGrid.ActionTracker.HasUnsavedChanges ||
-                   ColorsGrid.ActionTracker.HasUnsavedChanges ||
-                   StandartBarLengthsGrid.ActionTracker.HasUnsavedChanges ||
-                   ProfileTypesGrid.ActionTracker.HasUnsavedChanges ||
-                   ApplicabilitiesGrid.ActionTracker.HasUnsavedChanges ||
-                   ProfileArticlesGrid.ActionTracker.HasUnsavedChanges ||
-                   CoatingTypesGrid.ActionTracker.HasUnsavedChanges ||
-                   CProfilesGrid.ActionTracker.HasUnsavedChanges;
+            return HasUnsavedChanges(SystemProvidersGrid) ||
+                   HasUnsavedChanges(ProfileSystemsGrid) ||
+                   HasUnsavedChanges(ColorsGrid) ||
+                   HasUnsavedChanges(StandartBarLengthsGrid) ||
+                   HasUnsavedChanges(ProfileTypesGrid) ||
+                   HasUnsavedChanges(ApplicabilitiesGrid) ||
+                   HasUnsavedChanges(ProfileArticlesGrid) ||
+                   HasUnsavedChanges(CoatingTypesGrid) ||
+                   HasUnsavedChanges(CProfilesGrid);
+        }
+
+        private static bool HasUnsavedChanges(DictionaryTableControl grid)
+        {
+            return grid?.ActionTracker?.HasUnsavedChanges == true;
         }
 
         /// <summary>

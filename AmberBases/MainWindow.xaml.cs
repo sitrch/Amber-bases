@@ -11,6 +11,7 @@ using System.Windows.Input;
 using Microsoft.Win32;
 using AmberBases.Core;
 using AmberBases.Services;
+using AmberBases.UI;
 using AmberBases.UI.Tracking;
 
 namespace AmberBases
@@ -169,13 +170,6 @@ namespace AmberBases
             {
                 ToggleRibbonState(selectedTab.Name, false);
             }
-        }
-
-        private class FileItem
-        {
-            public string Name { get; set; }
-            public string Path { get; set; }
-            public override string ToString() => Name;
         }
 
         private void LoadFileList()

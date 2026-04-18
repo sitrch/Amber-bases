@@ -35,6 +35,8 @@
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Поиск:" VerticalAlignment="Center" Margin="5,0"/>
                 <TextBox x:Name="SearchTextBox" Width="200" Margin="5" TextChanged="SearchTextBox_TextChanged"/>
+                <TextBlock Text="Столбец:" VerticalAlignment="Center" Margin="15,0,5,0"/>
+                <ComboBox x:Name="SearchColumnCombo" Width="150" Margin="5" SelectionChanged="SearchColumnCombo_SelectionChanged"/>
             </StackPanel>
         </Border>
 
@@ -46,6 +48,7 @@
                   IsReadOnly="False"
                   SelectionMode="Extended"
                   SelectionUnit="CellOrRowHeader"
+                  SelectedCellsChanged="MainDataGrid_SelectedCellsChanged"
                   PreviewMouseRightButtonDown="DataGrid_PreviewMouseRightButtonDown"
                   PreviewKeyDown="DataGrid_PreviewKeyDown">
             <DataGrid.ContextMenu>

@@ -113,9 +113,7 @@ namespace AmberBases.UI
             }
             else if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None)
             {
-                // Сначала завершаем редактирование ячейки, если оно активно
                 CommitEdit();
-                OpenEditorForSelectedItem();
                 e.Handled = true;
             }
         }
@@ -128,6 +126,8 @@ namespace AmberBases.UI
             var focused = FocusManager.GetFocusedElement(this);
             return focused is TextBox || focused is ComboBox || focused is CheckBox;
         }
+
+        public Type EntityType => _entityType;
 
         /// <summary>
         /// Инициализирует контрол с данными для отображения.
@@ -156,13 +156,48 @@ namespace AmberBases.UI
             ExtractLookupCollections();
 
             // Устанавливаем заголовок
-            TitleTextBlock.Text = GetDisplayName(entityType.Name);
+            TitleTextBlock.Text = DisplayNameProvider.GetTypeName(entityType.Name);
 
             // Настраиваем столбцы
             SetupColumns();
 
+            // Заполняем комбобокс выбора столбца для поиска
+            PopulateSearchColumnCombo();
+
             // Привязываем данные к TrackingTable
             MainDataGrid.ItemsSource = _actionTracker.TrackingTable.DefaultView;
+        }
+
+        private void PopulateSearchColumnCombo()
+        {
+            SearchColumnCombo.Items.Clear();
+            SearchColumnCombo.Items.Add(new ComboBoxItem { Content = "Все столбцы", Tag = "" });
+
+            var columns = GetFilterableColumnNames();
+            foreach (var col in columns)
+            {
+                SearchColumnCombo.Items.Add(new ComboBoxItem { Content = col.DisplayName, Tag = col.Name });
+            }
+
+            SearchColumnCombo.SelectedIndex = 0;
+        }
+
+        private void SearchColumnCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SearchColumnCombo.SelectedItem is ComboBoxItem selectedItem)
+            {
+                string columnName = selectedItem.Tag as string ?? "";
+                string columnDisplayName = selectedItem.Content as string ?? "";
+
+                if (string.IsNullOrEmpty(columnName) || columnDisplayName == "Все столбцы")
+                {
+                    ApplyFilter(SearchTextBox.Text);
+                }
+                else
+                {
+                    ApplyFilter(SearchTextBox.Text, columnDisplayName);
+                }
+            }
         }
 
         private void ExtractLookupCollections()
@@ -204,9 +239,31 @@ namespace AmberBases.UI
         public void Undo()
         {
             Console.WriteLine($"[UI Undo] Start. CanUndo={_actionTracker?.CanUndo}");
+            
+            // Сохраняем позицию и выделение
+            var selectedIndex = MainDataGrid.SelectedIndex;
+            var selectedItem = MainDataGrid.SelectedItem;
+            
             if (_actionTracker?.Undo() == true)
             {
                 Console.WriteLine($"[UI Undo] Done. Tracker.CanUndo={_actionTracker.CanUndo}, TableRows={_actionTracker.TrackingTable?.Rows.Count}");
+                
+                // Очищаем и перепривязываем ItemsSource для корректного обновления UI
+                MainDataGrid.ItemsSource = null;
+                MainDataGrid.ItemsSource = _actionTracker.TrackingTable.DefaultView;
+                
+                // Восстанавливаем выделение после применения ItemsSource
+                if (selectedIndex >= 0 && selectedIndex < MainDataGrid.Items.Count)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (selectedIndex < MainDataGrid.Items.Count)
+                        {
+                            MainDataGrid.SelectedIndex = selectedIndex;
+                            MainDataGrid.ScrollIntoView(MainDataGrid.SelectedItem);
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                }
             }
             else
             {
@@ -217,9 +274,30 @@ namespace AmberBases.UI
         public void Redo()
         {
             Console.WriteLine($"[UI Redo] Start. CanRedo={_actionTracker?.CanRedo}");
+            
+            // Сохраняем позицию и выделение
+            var selectedIndex = MainDataGrid.SelectedIndex;
+            
             if (_actionTracker?.Redo() == true)
             {
                 Console.WriteLine($"[UI Redo] Done. Tracker.CanRedo={_actionTracker.CanRedo}, TableRows={_actionTracker.TrackingTable?.Rows.Count}");
+                
+                // Очищаем и перепривязываем ItemsSource для корректного обновления UI
+                MainDataGrid.ItemsSource = null;
+                MainDataGrid.ItemsSource = _actionTracker.TrackingTable.DefaultView;
+                
+                // Восстанавливаем выделение после применения ItemsSource
+                if (selectedIndex >= 0 && selectedIndex < MainDataGrid.Items.Count)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (selectedIndex < MainDataGrid.Items.Count)
+                        {
+                            MainDataGrid.SelectedIndex = selectedIndex;
+                            MainDataGrid.ScrollIntoView(MainDataGrid.SelectedItem);
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                }
             }
             else
             {
@@ -251,8 +329,7 @@ namespace AmberBases.UI
                 var editingItem = _editingItem;
                 var oldItem = _editingOldItem;
                 var propertyName = _editingPropertyName;
-                var rowIndex = e.Row.GetIndex();
-                var columnIndex = e.Column.DisplayIndex;
+                var rowItem = e.Row.Item;
 
                 // Используем Dispatcher.BeginInvoke, чтобы binding успел обновить источник
                 Dispatcher.BeginInvoke(new Action(() =>
@@ -264,9 +341,10 @@ namespace AmberBases.UI
 
                     if (!Equals(oldValue, newValue))
                     {
-                        if (rowIndex >= 0 && rowIndex < _collection.Count)
+                        // Находим sourceItem через GetSourceItemFromDataGrid для корректного индекса
+                        var sourceItem = GetSourceItemFromDataGrid(rowItem, MainDataGrid);
+                        if (sourceItem != null)
                         {
-                            var sourceItem = _collection[rowIndex];
                             var prop = sourceItem.GetType().GetProperty(propertyName);
                             if (prop != null && prop.CanWrite)
                             {
@@ -297,8 +375,12 @@ namespace AmberBases.UI
                         }
 
                         Console.WriteLine("[CellEditEnding] Changes detected, calling DetectAndRecordChanges");
-                        // Не перестраиваем таблицу (updateTable: false), чтобы DataGrid не потерял фокус
-                        _actionTracker.DetectAndRecordChanges(false);
+                        // Перестраиваем таблицу для корректного Undo/Redo
+                        _actionTracker.DetectAndRecordChanges();
+                        
+                        // Принудительно обновляем UI
+                        MainDataGrid.ItemsSource = null;
+                        MainDataGrid.ItemsSource = _actionTracker.TrackingTable.DefaultView;
                     }
                     else
                     {
@@ -358,10 +440,12 @@ namespace AmberBases.UI
                 // Пропускаем технические поля
                 if (prop.Name == "Id" || prop.Name == "Position" || prop.Name == "Info" || prop.Name == "ArticleId" || prop.Name == "StandartBarLengthId")
                     continue;
+                if (!ColumnSettings.IsColumnVisible(_entityType.Name, prop.Name))
+                    continue;
                 if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType) && prop.PropertyType != typeof(string))
                     continue;
                 // Пропускаем навигационные свойства (сложные reference-типы)
-                if (ExcludedNavigationProperties.Contains(prop.Name))
+                if (ColumnSettings.IsNavPropExcluded(_entityType.Name, prop.Name))
                     continue;
 
                 // Проверяем, является ли поле FK
@@ -373,7 +457,7 @@ namespace AmberBases.UI
                 {
                     var textCol = new DataGridTextColumn
                     {
-                        Header = GetPropertyDisplayName(prop.Name),
+                        Header = ColumnSettings.GetColumnName(_entityType.Name, prop.Name),
                         Binding = new System.Windows.Data.Binding(prop.Name) { Mode = BindingMode.TwoWay },
                         Width = DataGridLength.Auto
                     };
@@ -389,7 +473,7 @@ namespace AmberBases.UI
             {
                 var comboBoxCol = new DataGridComboBoxColumn
                 {
-                    Header = GetPropertyDisplayName(prop.Name),
+                    Header = ColumnSettings.GetColumnName(_entityType.Name, prop.Name),
                     SelectedValuePath = "Id",
                     DisplayMemberPath = "Name",
                     Width = DataGridLength.Auto
@@ -454,60 +538,11 @@ namespace AmberBases.UI
             return null;
         }
 
-        private string GetDisplayName(string typeName)
-        {
-            var names = new Dictionary<string, string>
-            {
-                { "SystemProvider", "Поставщики систем" },
-                { "ProfileSystem", "Профильные системы" },
-                { "Color", "Цвета" },
-                { "StandartBarLength", "Длины хлыста" },
-                { "ProfileType", "Типы профилей" },
-                { "Applicability", "Применимость" },
-                { "ProfileArticle", "Артикулы" },
-                { "CoatingType", "Типы покрытий" },
-                { "Customer", "Клиенты" },
-                { "CustomerContact", "Контакты клиентов" }
-            };
-            return names.ContainsKey(typeName) ? names[typeName] : typeName;
-        }
-
-            private string GetPropertyDisplayName(string propertyName)
-            {
-            var names = new Dictionary<string, string>
-            {
-                { "Name", "Название" },
-                { "Information", "Информация" },
-                { "Description", "Описание" },
-                { "ColorName", "Цвет" },
-                { "RAL", "RAL код" },
-                { "CoatingTypeId", "Тип покрытия" },
-                { "Length", "Длина" },
-                { "Article", "Артикул" },
-                { "ArticleId", "Артикул" },
-                { "SystemProviderId", "Поставщик систем" },
-                { "ProfileSystemId", "Профильная система" },
-                { "ProfileTypeId", "Тип профиля" },
-                { "ApplicabilityId", "Применимость" },
-                { "ManufacturerId", "Производитель" },
-                { "SystemId", "Система" },
-                { "ColorId", "Цвет" },
-                { "Code", "Код" },
-                { "BOMArticle", "Артикул для заказа" },
-                { "Title", "Название" },
-                { "CutWisibleWidth", "Ширина отображения" },
-                { "StandartBarLengthId", "Стандартная длина" },
-                { "FileName", "Имя файла" },
-                { "Size", "Размер" },
-                { "StepHeight", "Высота ступени" }
-            };
-                return names.ContainsKey(propertyName) ? names[propertyName] : propertyName;
-            }
-
         #region Context Menu Handlers
 
         private void DataGrid_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            CommitEdit();
             if (sender is DataGrid dataGrid)
             {
                 var dependencyObject = e.OriginalSource as DependencyObject;
@@ -567,7 +602,7 @@ namespace AmberBases.UI
                         var parentType = GetParentEntityType(prop);
                         if (parentType != null)
                         {
-                            var parentDisplayName = GetDisplayName(parentType.Name);
+                            var parentDisplayName = DisplayNameProvider.GetTypeName(parentType.Name);
                             var capturedPropName = bindingPath;
                             var capturedContextItem = cell.DataContext;
                             
@@ -768,6 +803,11 @@ namespace AmberBases.UI
         }
 
         #endregion
+
+        private void MainDataGrid_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
+        {
+            CommitEdit();
+        }
 
         #region Add / Delete Row
 
@@ -984,7 +1024,7 @@ namespace AmberBases.UI
 
                 if (!first) headerSb.Append('\t');
                 first = false;
-                headerSb.Append(GetPropertyDisplayName(prop.Name));
+                headerSb.Append(ColumnSettings.GetColumnName(_entityType.Name, prop.Name));
             }
 
             Clipboard.SetText(headerSb.AppendLine().Append(sb).ToString());
@@ -1374,18 +1414,33 @@ namespace AmberBases.UI
             if (!rowCommit) MainDataGrid.CancelEdit(DataGridEditingUnit.Row);
         }
 
+        public void RefreshFromCollection(IList collection, Dictionary<Type, IEnumerable> allCollections, IDictionaryDataService dataService)
+        {
+            _collection = collection;
+            _allCollections = allCollections;
+            _dataService = dataService;
+
+            ExtractLookupCollections();
+
+            _actionTracker = new EditActionTracker(collection, _entityType);
+            _actionTracker.StateChanged += OnTrackerStateChanged;
+            _actionTracker.Initialize();
+
+            MainDataGrid.ItemsSource = _actionTracker.TrackingTable.DefaultView;
+        }
+
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             ApplyFilter(SearchTextBox.Text);
         }
 
-        public void ApplyFilter(string filterText, string fallbackSearchProperty = null)
+        public void ApplyFilter(string filterText, string columnDisplayName = null)
         {
             if (_actionTracker?.TrackingTable == null) return;
             var dataView = _actionTracker.TrackingTable.DefaultView;
             if (dataView == null) return;
 
-            filterText = filterText?.ToLower() ?? "";
+            filterText = filterText ?? "";
 
             if (string.IsNullOrWhiteSpace(filterText))
             {
@@ -1393,16 +1448,62 @@ namespace AmberBases.UI
             }
             else
             {
-                var filterExpression = string.Join(" OR ",
-                    _actionTracker.TrackingTable.Columns.Cast<DataColumn>()
-                        .Where(col => col.ColumnName != "Timestamp" && col.ColumnName != "Deleted")
-                        .Select(col => $"LOWER([{col.ColumnName}]) LIKE '%{filterText}%'"
-                            .Replace("'", "\"")));
-                dataView.RowFilter = filterExpression;
+                var excludedColumns = new[] { "Id", "Position", "Info", "Timestamp", "Deleted" };
+                var allColumns = _actionTracker.TrackingTable.Columns.Cast<DataColumn>()
+                    .Where(col => !excludedColumns.Contains(col.ColumnName))
+                    .ToList();
+
+                if (!string.IsNullOrEmpty(columnDisplayName))
+                {
+                    var col = allColumns.FirstOrDefault(c => DisplayNameProvider.GetPropertyName(c.ColumnName) == columnDisplayName);
+                    if (col != null)
+                    {
+                        var filterExpr = BuildFilterExpression(col, filterText);
+                        if (!string.IsNullOrEmpty(filterExpr))
+                            dataView.RowFilter = filterExpr;
+                    }
+                }
+                else
+                {
+                    var stringColumns = allColumns
+                        .Where(col => col.DataType == typeof(string) || col.DataType == typeof(object))
+                        .ToList();
+
+                    if (stringColumns.Count > 0)
+                    {
+                        var filterExpression = string.Join(" OR ",
+                            stringColumns.Select(col => BuildFilterExpression(col, filterText)));
+                        dataView.RowFilter = filterExpression;
+                    }
+                }
             }
 
-            // Переприсваиваем ItemsSource для обновления отображения
             MainDataGrid.ItemsSource = dataView;
+        }
+
+        private string BuildFilterExpression(DataColumn col, string filterText)
+        {
+            if (col.DataType == typeof(string) || col.DataType == typeof(object))
+                return $"[{col.ColumnName}] LIKE '%{filterText}%'";
+            
+            if (col.DataType == typeof(int) || col.DataType == typeof(double) || col.DataType == typeof(decimal) || col.DataType == typeof(float))
+            {
+                if (double.TryParse(filterText.Replace(",", "."), out double numValue))
+                    return $"[{col.ColumnName}] = {numValue.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+            }
+            
+            return null;
+        }
+
+        public List<(string Name, string DisplayName)> GetFilterableColumnNames()
+        {
+            if (_actionTracker?.TrackingTable == null) return new List<(string, string)>();
+
+            var excludedColumns = new[] { "Id", "Position", "Info", "Timestamp", "Deleted" };
+            return _actionTracker.TrackingTable.Columns.Cast<DataColumn>()
+                .Where(col => !excludedColumns.Contains(col.ColumnName))
+                .Select(col => (col.ColumnName, DisplayNameProvider.GetPropertyName(col.ColumnName)))
+                .ToList();
         }
 
         #endregion
@@ -1629,6 +1730,14 @@ namespace AmberBases.UI
             if (dataGrid?.Items != null)
             {
                 dataGrid.Items.Refresh();
+            }
+        }
+
+        public void RefreshDataGrid()
+        {
+            if (MainDataGrid?.Items != null)
+            {
+                MainDataGrid.Items.Refresh();
             }
         }
 

@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using AmberBases.Core.Models.Dictionaries;
 using AmberBases.Core.Builders;
+using AmberBases.Helpers;
 
 namespace AmberBases.Services
 {
@@ -173,19 +174,15 @@ namespace AmberBases.Services
         public void AddItem<T>(T item, string tableName, string dbPath) where T : BaseDictionaryModel
         {
             var builder = new SqlBuilder<T>(tableName);
-            using (var connection = new SQLiteConnection($"Data Source={dbPath};Version=3;"))
+            using (var connection = DbConnectionHelper.CreateAndOpen(dbPath))
+            using (var command = new SQLiteCommand(builder.GetInsertSql(), connection))
             {
-                connection.Open();
-                using (var command = new SQLiteCommand(builder.GetInsertSql(), connection))
+                var parameters = builder.GetParameters(item);
+                foreach (var param in parameters)
                 {
-                    var parameters = builder.GetParameters(item);
-                    foreach (var param in parameters)
-                    {
-                        command.Parameters.AddWithValue(param.Key, param.Value);
-                    }
-                    var id = Convert.ToInt32(command.ExecuteScalar());
-                    item.Id = id;
+                    command.Parameters.AddWithValue(param.Key, param.Value);
                 }
+                item.Id = Convert.ToInt32(command.ExecuteScalar());
             }
         }
 
@@ -193,19 +190,16 @@ namespace AmberBases.Services
         public void UpdateItem<T>(T item, string tableName, string dbPath) where T : BaseDictionaryModel
         {
             var builder = new SqlBuilder<T>(tableName);
-            using (var connection = new SQLiteConnection($"Data Source={dbPath};Version=3;"))
+            using (var connection = DbConnectionHelper.CreateAndOpen(dbPath))
+            using (var command = new SQLiteCommand(builder.GetUpdateSql(), connection))
             {
-                connection.Open();
-                using (var command = new SQLiteCommand(builder.GetUpdateSql(), connection))
+                var parameters = builder.GetParameters(item);
+                foreach (var param in parameters)
                 {
-                    var parameters = builder.GetParameters(item);
-                    foreach (var param in parameters)
-                    {
-                        command.Parameters.AddWithValue(param.Key, param.Value);
-                    }
-                    command.Parameters.AddWithValue("@Id", item.Id);
-                    command.ExecuteNonQuery();
+                    command.Parameters.AddWithValue(param.Key, param.Value);
                 }
+                command.Parameters.AddWithValue("@Id", item.Id);
+                command.ExecuteNonQuery();
             }
         }
 
@@ -213,14 +207,11 @@ namespace AmberBases.Services
         public void DeleteItem<T>(int id, string tableName, string dbPath) where T : BaseDictionaryModel
         {
             var builder = new SqlBuilder<T>(tableName);
-            using (var connection = new SQLiteConnection($"Data Source={dbPath};Version=3;"))
+            using (var connection = DbConnectionHelper.CreateAndOpen(dbPath))
+            using (var command = new SQLiteCommand(builder.GetDeleteSql(), connection))
             {
-                connection.Open();
-                using (var command = new SQLiteCommand(builder.GetDeleteSql(), connection))
-                {
-                    command.Parameters.AddWithValue("@Id", id);
-                    command.ExecuteNonQuery();
-                }
+                command.Parameters.AddWithValue("@Id", id);
+                command.ExecuteNonQuery();
             }
         }
 
@@ -289,5 +280,24 @@ namespace AmberBases.Services
         public void AddCoatingType(CoatingType coatingType, string dbPath) => AddItem(coatingType, "CoatingTypes", dbPath);
         public void UpdateCoatingType(CoatingType coatingType, string dbPath) => UpdateItem(coatingType, "CoatingTypes", dbPath);
         public void DeleteCoatingType(int id, string dbPath) => DeleteItem<CoatingType>(id, "CoatingTypes", dbPath);
+
+        List<T> IDictionaryDataService.GetItems<T>(string dbPath) => GetItems<T>(GetTableName<T>(), dbPath);
+        void IDictionaryDataService.AddItem<T>(T item, string dbPath) => AddItem(item, GetTableName<T>(), dbPath);
+        void IDictionaryDataService.UpdateItem<T>(T item, string dbPath) => UpdateItem(item, GetTableName<T>(), dbPath);
+        void IDictionaryDataService.DeleteItem<T>(int id, string dbPath) => DeleteItem<T>(id, GetTableName<T>(), dbPath);
+
+        private static readonly Dictionary<Type, string> _tableNames = new()
+        {
+            { typeof(CProfile), "Profiles" }
+        };
+
+        private static string GetTableName<T>()
+        {
+            if (_tableNames.TryGetValue(typeof(T), out var name))
+                return name;
+            var typeName = typeof(T).Name;
+            if (typeName.EndsWith("y")) return typeName.Substring(0, typeName.Length - 1) + "ies";
+            return typeName + "s";
+        }
     }
 }

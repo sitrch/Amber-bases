@@ -1,11 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Ribbon;
-using System.Windows.Forms;
 using Newtonsoft.Json;
 
 namespace AmberBases.UI.Tracking
@@ -56,58 +53,6 @@ namespace AmberBases.UI.Tracking
             {
                 Console.WriteLine($"Ошибка сохранения настроек UI: {ex.Message}");
             }
-        }
-
-        public void TrackDataGridView(DataGridView grid, string key)
-        {
-            if (_settings.TryGetValue($"{key}_Columns", out var columnsObj))
-            {
-                try
-                {
-                    var colWidths = JsonConvert.DeserializeObject<Dictionary<string, int>>(columnsObj.ToString());
-                    foreach (DataGridViewColumn col in grid.Columns)
-                    {
-                        if (colWidths.TryGetValue(col.Name, out int width))
-                        {
-                            col.Width = width;
-                        }
-                    }
-                }
-                catch { }
-            }
-
-            grid.ColumnWidthChanged += (s, e) =>
-            {
-                var dict = new Dictionary<string, int>();
-                foreach (DataGridViewColumn col in grid.Columns)
-                {
-                    dict[col.Name] = col.Width;
-                }
-                _settings[$"{key}_Columns"] = dict;
-                SaveSettings();
-            };
-        }
-
-        public void TrackSplitContainer(SplitContainer splitter, string key)
-        {
-            if (_settings.TryGetValue($"{key}_SplitterDistance", out var distObj))
-            {
-                try
-                {
-                    int dist = Convert.ToInt32(distObj);
-                    if (dist >= splitter.Panel1MinSize && dist <= splitter.Width - splitter.Panel2MinSize)
-                    {
-                        splitter.SplitterDistance = dist;
-                    }
-                }
-                catch { }
-            }
-
-            splitter.SplitterMoved += (s, e) =>
-            {
-                _settings[$"{key}_SplitterDistance"] = splitter.SplitterDistance;
-                SaveSettings();
-            };
         }
 
         /// <summary>
@@ -239,6 +184,19 @@ namespace AmberBases.UI.Tracking
                 _settings[$"{key}_PanelHeight"] = rowDefinition.Height.Value;
                 SaveSettings();
             };
+        }
+
+        public void SaveFilterColumn(string gridName, string columnName)
+        {
+            _settings[$"{gridName}_FilterColumn"] = columnName;
+            SaveSettings();
+        }
+
+        public string LoadFilterColumn(string gridName, string defaultColumn)
+        {
+            if (_settings.TryGetValue($"{gridName}_FilterColumn", out var val))
+                return val?.ToString() ?? defaultColumn;
+            return defaultColumn;
         }
     }
 }

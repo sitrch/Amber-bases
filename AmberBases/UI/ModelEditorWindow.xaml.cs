@@ -58,7 +58,7 @@ namespace AmberBases.UI
             _originalValues = CloneModelValues(model);
 
             var typeName = model.GetType().Name;
-            var displayName = GetDisplayName(typeName);
+            var displayName = DisplayNameProvider.GetTypeName(typeName);
             TitleTextBlock.Text = $"Редактирование: {displayName}";
 
             GenerateFields();
@@ -252,13 +252,13 @@ namespace AmberBases.UI
                     if (SaveToDatabase())
                     {
                         _isClosing = true;
-                        Close();
+                        Dispatcher.BeginInvoke(new Action(() => Close()));
                     }
                     break;
                 case MessageBoxResult.No:
                     RestoreOriginalValues();
                     _isClosing = true;
-                    Close();
+                    Dispatcher.BeginInvoke(new Action(() => Close()));
                     break;
                 case MessageBoxResult.Cancel:
                     // Остаёмся в окне
@@ -282,7 +282,7 @@ namespace AmberBases.UI
 
                 var label = new TextBlock
                 {
-                    Text = GetPropertyDisplayName(prop.Name),
+                    Text = DisplayNameProvider.GetPropertyName(prop.Name),
                     FontWeight = FontWeights.SemiBold,
                     Margin = new Thickness(0, 0, 0, 4)
                 };
@@ -360,7 +360,7 @@ namespace AmberBases.UI
                     Width = 30,
                     Height = 23,
                     Padding = new Thickness(2),
-                    ToolTip = $"Открыть таблицу \"{GetPropertyDisplayName(prop.Name)}\""
+                    ToolTip = $"Открыть таблицу \"{DisplayNameProvider.GetPropertyName(prop.Name)}\""
                 };
                 editButton.Click += (s, e) => OpenParentEditor(prop, parentCollection);
                 horizontalPanel.Children.Add(editButton);
@@ -490,7 +490,7 @@ namespace AmberBases.UI
         private ContextMenu CreateFkContextMenu(PropertyInfo fkProp, Type parentType, IEnumerable parentCollection)
         {
             var contextMenu = new ContextMenu();
-            var displayName = GetDisplayName(parentType.Name);
+            var displayName = DisplayNameProvider.GetTypeName(parentType.Name);
             var menuItem = new MenuItem
             {
                 Header = $"Открыть таблицу \"{displayName}\"",
@@ -512,47 +512,6 @@ namespace AmberBases.UI
                     break;
                 }
             }
-        }
-
-        private string GetDisplayName(string typeName)
-        {
-            var names = new Dictionary<string, string>
-            {
-                { "SystemProvider", "Поставщик систем" },
-                { "ProfileSystem", "Профильная система" },
-                { "Color", "Цвет" },
-                { "StandartBarLength", "Длина хлыста" },
-                { "ProfileType", "Тип профиля" },
-                { "Applicability", "Применимость" },
-                { "ProfileArticle", "Артикул профиля" },
-                { "CoatingType", "Тип покрытия" },
-                { "Customer", "Клиент" },
-                { "CustomerContact", "Контакт клиента" }
-            };
-            return names.ContainsKey(typeName) ? names[typeName] : typeName;
-        }
-
-        private string GetPropertyDisplayName(string propertyName)
-        {
-            var names = new Dictionary<string, string>
-            {
-                { "Name", "Название" },
-                { "Information", "Информация" },
-                { "Description", "Описание" },
-                { "ColorName", "Название цвета" },
-                { "RAL", "RAL код" },
-                { "CoatingTypeId", "Тип покрытия" },
-                { "Length", "Длина" },
-                { "Article", "Артикул" },
-                { "SystemProviderId", "Поставщик систем" },
-                { "ProfileSystemId", "Профильная система" },
-                { "ProfileTypeId", "Тип профиля" },
-                { "ApplicabilityId", "Применимость" },
-                { "FileName", "Имя файла" },
-                { "Size", "Размер" },
-                { "StepHeight", "Высота ступени" }
-            };
-            return names.ContainsKey(propertyName) ? names[propertyName] : propertyName;
         }
 
         private bool IsForeignKey(PropertyInfo prop)

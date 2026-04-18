@@ -4,23 +4,45 @@
 **Расположение:** `AmberBases/UI/DictionaryEditorView.xaml` и `AmberBases/UI/DictionaryEditorView.xaml.cs`
 
 ## Назначение
-Главное окно редактора справочников. Пользовательский элемент управления (UserControl) на базе WPF, реализующий `IInitControl`, предоставляющий интерфейс для просмотра и редактирования словарей базы данных. Отображает все справочники в виде вкладок (`TabControl`), где каждая вкладка содержит унифицированный компонент `<local:DictionaryTableControl>`. Управляет загрузкой, сохранением и координацией между словарями.
+Главный пользовательский элемент управления (UserControl) на базе WPF для просмотра и редактирования справочников. Реализует интерфейс `IInitControl`. Содержит девять `DictionaryTableControl` для каждого справочника:
+- SystemProvidersGrid
+- ProfileSystemsGrid
+- ColorsGrid
+- StandartBarLengthsGrid
+- ProfileTypesGrid
+- ApplicabilitiesGrid
+- ProfileArticlesGrid
+- CoatingTypesGrid
+- CProfilesGrid
+
+## Логика работы
+При инициализации (`InitControl`) создаёт `SqliteDictionaryDataService`, загружает данные и инициализирует каждый `DictionaryTableControl`. Поддерживает фильтрацию по тексту и синхронизацию изменений с БД.
+
+## Ключевые методы
+- `InitControl()`: Инициализация контрола, отслеживание высоты панели, асинхронная загрузка данных.
+- `LoadData()`: Асинхронно загружает все справочники и инициализирует `DictionaryTableControl`.
+- `GetActiveGrid()`: Возвращает видимый `DictionaryTableControl`.
+- `ApplyFilter()`: Применяет фильтр поиска к активной таблице.
+- `BtnSave_Click`: Сохраняет изменения во все справочники.
+- `SyncAllCollections()`: Синхронизирует коллекции с БД (добавление/обновление/удаление).
+- `SetMaterialsMode(bool isMaterials)`: Переключает режим "только артикулы" (скрывает панель выбора).
+- `ShowProfileArticles()`: Показывает только таблицу артикулов профилей.
+- `HasAnyUnsavedChanges()`: Проверяет наличие несохранённых изменений.
+- `SaveAllChanges()`: Сохраняет все изменения.
+- `DiscardAllChanges()`: Сбрасывает несохранённые изменения.
 
 ## Зависимости
-- `AmberBases.Services.IDictionaryDataService` — для сохранения и загрузки данных.
-- `AmberBases.UI.DictionaryTableControl` — переиспользуемый компонент для отображения и редактирования таблиц (каждая вкладка содержит свой экземпляр).
-- `AmberBases.UI.Tracking.EditActionTracker` — используется глобально через опрос активной вкладки.
-- `AmberBases.Core.Models.Dictionaries.*` — классы моделей для коллекций.
+- `AmberBases.Services.IDictionaryDataService` / `SqliteDictionaryDataService`
+- `AmberBases.UI.DictionaryTableControl`
+- `AmberBases.UI.Tracking.EditActionTracker` (через DictionaryTableControl)
+- `AmberBases.UI.Tracking.InterfaceSettingsTracker`
+- `AmberBases.Core.Models.Dictionaries.*`
+- `AmberBases.Core.DatabaseConfig`
 
-## Основные методы
-- `InitControl()`: Инициализация контрола, скрытие спиннера и запуск асинхронной загрузки.
-- `LoadAllDataAsync()` — асинхронно загружает все справочники из базы в наблюдаемые коллекции. В процессе загрузки вызывает метод `Initialize` для каждого `DictionaryTableControl` (например, `ProvidersTableControl.Initialize(...)`), передавая коллекции, lookup-справочники и callback для открытия родительских таблиц.
-- `SaveAllDataAsync()` — сохраняет все измененные данные обратно в базу, делая синхронизацию списков с БД (CRUD операции через Service).
-- `SetMaterialsMode(bool isMaterials)` — переключает режим отображения: при `true` скрывает панель переключения таблиц и показывает только "Артикулы Профилей" (для вкладки "Материалы"); при `false` восстанавливает полный интерфейс справочников.
-- `ShowProfileArticles()` — показывает только таблицу "Артикулы Профилей".
+## Кнопки панели инструментов
+- **Undo** / **Redo** — отмена/повтор действий (привязаны к активному `DictionaryTableControl`)
+- **Сохранить** — синхронизация всех справочников с БД
+- **Обновить** — перезагрузка данных из БД
 
-## Взаимодействие (DI / вызовы)
-- Окно получает зависимости через инверсию управления (DI) или инициализацию.
-- Делегирует UI-логику, поиск, undo/redo, работу с буфером обмена и контекстное меню компонентам `DictionaryTableControl`.
-- Обрабатывает глобальные кнопки Undo/Redo: при смене вкладки (`TabControl_SelectionChanged`) тулбар привязывается к `ActionTracker` активного `DictionaryTableControl`.
-- Координирует открытие родительских таблиц из контролов (`OpenParentTable`, `SelectTabForType`).
+## Режим "Материалы"
+При переключении на вкладку "Материалы" вызывается `SetMaterialsMode(true)`, скрывающий панель выбора справочников и показывающий только `ProfileArticlesGrid`.

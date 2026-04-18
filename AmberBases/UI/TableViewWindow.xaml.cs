@@ -82,7 +82,7 @@ namespace AmberBases.UI
             );
 
             // Устанавливаем заголовок окна
-            var displayName = GetDisplayName(entityType.Name);
+            var displayName = DisplayNameProvider.GetTypeName(entityType.Name);
             Title = $"Таблица: {displayName}";
 
             // Сохраняем оригинальные значения для отслеживания изменений
@@ -205,17 +205,7 @@ namespace AmberBases.UI
         /// </summary>
         private void RestoreOriginalValues()
         {
-            // Загружаем актуальные данные из БД для редактируемой коллекции
-            IEnumerable freshData = null;
-            if (_currentEntityType == typeof(SystemProvider)) freshData = _dataService.GetSystemProviders(_dbPath);
-            else if (_currentEntityType == typeof(ProfileSystem)) freshData = _dataService.GetProfileSystems(_dbPath);
-            else if (_currentEntityType == typeof(AmberBases.Core.Models.Dictionaries.Color)) freshData = _dataService.GetColors(_dbPath);
-            else if (_currentEntityType == typeof(StandartBarLength)) freshData = _dataService.GetStandartBarLengths(_dbPath);
-            else if (_currentEntityType == typeof(ProfileType)) freshData = _dataService.GetProfileTypes(_dbPath);
-            else if (_currentEntityType == typeof(Applicability)) freshData = _dataService.GetApplicabilities(_dbPath);
-            else if (_currentEntityType == typeof(ProfileArticle)) freshData = _dataService.GetProfileArticles(_dbPath);
-            else if (_currentEntityType == typeof(CoatingType)) freshData = _dataService.GetCoatingTypes(_dbPath);
-
+            var freshData = GetItemsGeneric(_currentEntityType, _dbPath);
             if (freshData != null)
             {
                 _currentCollection.Clear();
@@ -224,12 +214,21 @@ namespace AmberBases.UI
                     _currentCollection.Add(item);
                 }
             }
-
-            // Сбрасываем снимки
             _originalSnapshots = CloneAllCollections();
-            
-            // Обновляем DataGrid и очищаем историю изменений, если трекер поддерживает очистку
-            TableControl.MainDataGrid.Items.Refresh();
+        }
+
+        private IEnumerable GetItemsGeneric(Type entityType, string dbPath)
+        {
+            var method = typeof(IDictionaryDataService).GetMethod("GetItems").MakeGenericMethod(entityType);
+            return (IEnumerable)method.Invoke(_dataService, new object[] { dbPath });
+        }
+
+        /// <summary>
+        /// Обновляет DataGrid и очищает историю изменений.
+        /// </summary>
+        private void RefreshDataGrid()
+        {
+            TableControl?.RefreshDataGrid();
         }
 
         /// <summary>
@@ -239,18 +238,8 @@ namespace AmberBases.UI
         {
             try
             {
-                if (_currentEntityType == typeof(SystemProvider)) SyncSystemProviders();
-                else if (_currentEntityType == typeof(ProfileSystem)) SyncProfileSystems();
-                else if (_currentEntityType == typeof(AmberBases.Core.Models.Dictionaries.Color)) SyncColors();
-                else if (_currentEntityType == typeof(StandartBarLength)) SyncStandartBarLengths();
-                else if (_currentEntityType == typeof(ProfileType)) SyncProfileTypes();
-                else if (_currentEntityType == typeof(Applicability)) SyncApplicabilities();
-                else if (_currentEntityType == typeof(ProfileArticle)) SyncProfileArticles();
-                else if (_currentEntityType == typeof(CoatingType)) SyncCoatingTypes();
-
-                // Обновляем снимок оригинальных данных
+                SyncCurrentCollection();
                 _originalSnapshots = CloneAllCollections();
-
                 return true;
             }
             catch (Exception ex)
@@ -258,6 +247,47 @@ namespace AmberBases.UI
                 MessageBox.Show($"Ошибка сохранения: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
+        }
+
+        private void SyncCurrentCollection()
+        {
+            var items = _currentCollection.Cast<BaseDictionaryModel>().ToList();
+            var dbItems = GetItems(_currentEntityType, _dbPath);
+            foreach (var item in items)
+            {
+                if (item.Id == 0) AddItem(item, _dbPath);
+                else UpdateItem(item, _dbPath);
+            }
+            var currentIds = items.Where(x => x.Id > 0).Select(x => x.Id).ToList();
+            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
+            {
+                DeleteItem(_currentEntityType, dbItem.Id, _dbPath);
+            }
+        }
+
+        private List<BaseDictionaryModel> GetItems(Type entityType, string dbPath)
+        {
+            var method = typeof(IDictionaryDataService).GetMethod("GetItems").MakeGenericMethod(entityType);
+            return ((System.Collections.IEnumerable)method.Invoke(_dataService, new object[] { dbPath }))
+                .Cast<BaseDictionaryModel>().ToList();
+        }
+
+        private void AddItem(BaseDictionaryModel item, string dbPath)
+        {
+            var method = typeof(IDictionaryDataService).GetMethod("AddItem").MakeGenericMethod(item.GetType());
+            method.Invoke(_dataService, new object[] { item, dbPath });
+        }
+
+        private void UpdateItem(BaseDictionaryModel item, string dbPath)
+        {
+            var method = typeof(IDictionaryDataService).GetMethod("UpdateItem").MakeGenericMethod(item.GetType());
+            method.Invoke(_dataService, new object[] { item, dbPath });
+        }
+
+        private void DeleteItem(Type entityType, int id, string dbPath)
+        {
+            var method = typeof(IDictionaryDataService).GetMethod("DeleteItem").MakeGenericMethod(entityType);
+            method.Invoke(_dataService, new object[] { id, dbPath });
         }
 
         /// <summary>
@@ -338,154 +368,6 @@ namespace AmberBases.UI
             return null;
         }
 
-        private string GetDisplayName(string typeName)
-        {
-            var names = new Dictionary<string, string>
-            {
-                { "SystemProvider", "Поставщики систем" },
-                { "ProfileSystem", "Профильные системы" },
-                { "Color", "Цвета" },
-                { "StandartBarLength", "Длины хлыста" },
-                { "ProfileType", "Типы профилей" },
-                { "Applicability", "Применимость" },
-                { "ProfileArticle", "Артикулы" },
-                { "CoatingType", "Типы покрытий" }
-            };
-            return names.ContainsKey(typeName) ? names[typeName] : typeName;
-        }
-
-        #region Sync Methods
-
-        private void SyncSystemProviders()
-        {
-            if (_systemProviders == null) return;
-            var dbItems = _dataService.GetSystemProviders(_dbPath);
-            foreach (var item in _systemProviders)
-            {
-                if (item.Id == 0) _dataService.AddSystemProvider(item, _dbPath);
-                else _dataService.UpdateSystemProvider(item, _dbPath);
-            }
-            var currentIds = _systemProviders.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteSystemProvider(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncProfileSystems()
-        {
-            if (_profileSystems == null) return;
-            var dbItems = _dataService.GetProfileSystems(_dbPath);
-            foreach (var item in _profileSystems)
-            {
-                if (item.Id == 0) _dataService.AddProfileSystem(item, _dbPath);
-                else _dataService.UpdateProfileSystem(item, _dbPath);
-            }
-            var currentIds = _profileSystems.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteProfileSystem(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncColors()
-        {
-            if (_colors == null) return;
-            var dbItems = _dataService.GetColors(_dbPath);
-            foreach (var item in _colors)
-            {
-                if (item.Id == 0) _dataService.AddColor(item, _dbPath);
-                else _dataService.UpdateColor(item, _dbPath);
-            }
-            var currentIds = _colors.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteColor(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncStandartBarLengths()
-        {
-            if (_StandartBarLengths == null) return;
-            var dbItems = _dataService.GetStandartBarLengths(_dbPath);
-            foreach (var item in _StandartBarLengths)
-            {
-                if (item.Id == 0) _dataService.AddStandartBarLength(item, _dbPath);
-                else _dataService.UpdateStandartBarLength(item, _dbPath);
-            }
-            var currentIds = _StandartBarLengths.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteStandartBarLength(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncProfileArticles()
-        {
-            if (_profileArticles == null) return;
-            var dbItems = _dataService.GetProfileArticles(_dbPath);
-            foreach (var item in _profileArticles)
-            {
-                if (item.Id == 0) _dataService.AddProfileArticle(item, _dbPath);
-                else _dataService.UpdateProfileArticle(item, _dbPath);
-            }
-            var currentIds = _profileArticles.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteProfileArticle(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncProfileTypes()
-        {
-            if (_profileTypes == null) return;
-            var dbItems = _dataService.GetProfileTypes(_dbPath);
-            foreach (var item in _profileTypes)
-            {
-                if (item.Id == 0) _dataService.AddProfileType(item, _dbPath);
-                else _dataService.UpdateProfileType(item, _dbPath);
-            }
-            var currentIds = _profileTypes.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteProfileType(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncApplicabilities()
-        {
-            if (_applicabilities == null) return;
-            var dbItems = _dataService.GetApplicabilities(_dbPath);
-            foreach (var item in _applicabilities)
-            {
-                if (item.Id == 0) _dataService.AddApplicability(item, _dbPath);
-                else _dataService.UpdateApplicability(item, _dbPath);
-            }
-            var currentIds = _applicabilities.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteApplicability(dbItem.Id, _dbPath);
-            }
-        }
-
-        private void SyncCoatingTypes()
-        {
-            if (_coatingTypes == null) return;
-            var dbItems = _dataService.GetCoatingTypes(_dbPath);
-            foreach (var item in _coatingTypes)
-            {
-                if (item.Id == 0) _dataService.AddCoatingType(item, _dbPath);
-                else _dataService.UpdateCoatingType(item, _dbPath);
-            }
-            var currentIds = _coatingTypes.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            foreach (var dbItem in dbItems.Where(x => !currentIds.Contains(x.Id)))
-            {
-                _dataService.DeleteCoatingType(dbItem.Id, _dbPath);
-            }
-        }
-
-        #endregion
-
         #region Button Click Handlers
 
         /// <summary>
@@ -498,7 +380,7 @@ namespace AmberBases.UI
                 if (SaveChanges())
                 {
                     // Обновляем интерфейс
-                    TableControl.MainDataGrid.Items.Refresh();
+                    RefreshDataGrid();
                 }
             }
             else
