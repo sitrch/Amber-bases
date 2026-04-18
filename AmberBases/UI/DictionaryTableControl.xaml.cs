@@ -47,6 +47,7 @@ namespace AmberBases.UI
         private string _editingPropertyName;
 
         private Window _parentWindow;
+        private List<string> _currentColumnOrder = new();
 
         // Навигационные свойства, которые не должны отображаться как колонки
         private static readonly HashSet<string> ExcludedNavigationProperties = new HashSet<string>
@@ -151,6 +152,9 @@ namespace AmberBases.UI
             // Подписываемся на события редактирования ячеек
             MainDataGrid.PreparingCellForEdit += MainDataGrid_PreparingCellForEdit;
             MainDataGrid.CellEditEnding += MainDataGrid_CellEditEnding;
+
+            // Подписываемся на событие перемещения столбцов
+            MainDataGrid.ColumnReordered += MainDataGrid_ColumnReordered;
 
             // Извлекаем lookup коллекции из allCollections
             ExtractLookupCollections();
@@ -462,6 +466,50 @@ namespace AmberBases.UI
                         Width = DataGridLength.Auto
                     };
                     MainDataGrid.Columns.Add(textCol);
+                }
+            }
+
+            // Применяем сохранённый порядок столбцов
+            var savedOrder = ColumnOrderStore.GetOrder(_entityType.Name);
+            if (savedOrder != null && savedOrder.Count > 0)
+            {
+                _currentColumnOrder = savedOrder;
+                ApplyColumnOrder(savedOrder);
+            }
+            else
+            {
+                _currentColumnOrder = MainDataGrid.Columns.Select(c => GetColumnPropertyName(c)).ToList();
+            }
+        }
+
+        private string GetColumnPropertyName(DataGridColumn column)
+        {
+            if (column is DataGridBoundColumn boundColumn && boundColumn.Binding is System.Windows.Data.Binding binding)
+            {
+                return binding.Path.Path;
+            }
+            if (column is DataGridComboBoxColumn comboBoxColumn && comboBoxColumn.SelectedValueBinding is System.Windows.Data.Binding cbBinding)
+            {
+                return cbBinding.Path.Path;
+            }
+            return null;
+        }
+
+        private void ApplyColumnOrder(List<string> order)
+        {
+            var columns = new List<DataGridColumn>(MainDataGrid.Columns);
+
+            for (int i = 0; i < order.Count; i++)
+            {
+                var propName = order[i];
+                var column = columns.FirstOrDefault(c => GetColumnPropertyName(c) == propName);
+                if (column != null)
+                {
+                    var currentIndex = MainDataGrid.Columns.IndexOf(column);
+                    if (currentIndex != i && currentIndex >= 0)
+                    {
+                        MainDataGrid.Columns.Move(currentIndex, i);
+                    }
                 }
             }
         }
@@ -807,6 +855,14 @@ namespace AmberBases.UI
         private void MainDataGrid_SelectedCellsChanged(object sender, SelectedCellsChangedEventArgs e)
         {
             CommitEdit();
+        }
+
+        private void MainDataGrid_ColumnReordered(object sender, DataGridColumnEventArgs e)
+        {
+            var order = MainDataGrid.Columns.Select(c => GetColumnPropertyName(c)).ToList();
+            _currentColumnOrder = order;
+            ColumnOrderStore.SaveOrder(_entityType.Name, order);
+            Console.WriteLine($"[ColumnOrder] Saved order for {_entityType.Name}: {string.Join(", ", order)}");
         }
 
         #region Add / Delete Row
