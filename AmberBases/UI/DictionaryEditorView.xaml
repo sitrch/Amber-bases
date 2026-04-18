@@ -8,44 +8,43 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition x:Name="DictionarySelectorRow" Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Dictionary selector -->
-        <Border x:Name="DictionarySelectorBorder" Grid.Row="0" Background="#f0f0f0" Padding="5">
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Поставщики" Click="BtnShowGrid_Click" Tag="SystemProvidersGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Системы профилей" Click="BtnShowGrid_Click" Tag="ProfileSystemsGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Цвета" Click="BtnShowGrid_Click" Tag="ColorsGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Хлыст" Click="BtnShowGrid_Click" Tag="StandartBarLengthsGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Типы профилей" Click="BtnShowGrid_Click" Tag="ProfileTypesGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Применимости" Click="BtnShowGrid_Click" Tag="ApplicabilitiesGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Артикулы Профилей" Click="BtnShowGrid_Click" Tag="ProfileArticlesGrid" Margin="2" Padding="5,2"/>
-                <Button Content="Типы покрытий" Click="BtnShowGrid_Click" Tag="CoatingTypesGrid" Margin="2" Padding="5,2"/>
-                <Button Content="С-Proфили" Click="BtnShowGrid_Click" Tag="CProfilesGrid" Margin="2" Padding="5,2"/>
-            </StackPanel>
-        </Border>
-
-        
-
-        <!-- Grids -->
-        <Grid Grid.Row="2" Margin="5">
-            <local:DictionaryTableControl x:Name="SystemProvidersGrid" Visibility="Visible"/>
-            <local:DictionaryTableControl x:Name="ProfileSystemsGrid" Visibility="Collapsed"/>
-            <local:DictionaryTableControl x:Name="ColorsGrid" Visibility="Collapsed"/>
-            <local:DictionaryTableControl x:Name="StandartBarLengthsGrid" Visibility="Collapsed"/>
-            <local:DictionaryTableControl x:Name="ProfileTypesGrid" Visibility="Collapsed"/>
-            <local:DictionaryTableControl x:Name="ApplicabilitiesGrid" Visibility="Collapsed"/>
-            <local:DictionaryTableControl x:Name="ProfileArticlesGrid" Visibility="Collapsed"/>
-            <local:DictionaryTableControl x:Name="CoatingTypesGrid" Visibility="Collapsed"/>
-            <local:DictionaryTableControl x:Name="CProfilesGrid" Visibility="Collapsed"/>
-        </Grid>
+        <!-- Dictionary selector tabs -->
+        <TabControl x:Name="TablesTabControl" Grid.Row="0" SelectionChanged="TablesTabControl_SelectionChanged">
+            <TabItem Header="Поставщики">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="SystemProvidersGrid"/></Grid>
+            </TabItem>
+            <TabItem Header="Системы профилей">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="ProfileSystemsGrid"/></Grid>
+            </TabItem>
+            <TabItem Header="Цвета">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="ColorsGrid"/></Grid>
+            </TabItem>
+            <TabItem Header="Хлыст">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="StandartBarLengthsGrid"/></Grid>
+            </TabItem>
+            <TabItem Header="Типы профилей">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="ProfileTypesGrid"/></Grid>
+            </TabItem>
+            <TabItem Header="Применимости">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="ApplicabilitiesGrid"/></Grid>
+            </TabItem>
+            <TabItem Header="Артикулы Профилей">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="ProfileArticlesGrid"/></Grid>
+            </TabItem>
+            <TabItem Header="Типы покрытий">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="CoatingTypesGrid"/></Grid>
+            </TabItem>
+            <TabItem Header="С-Proфили">
+                <Grid Margin="5"><local:DictionaryTableControl x:Name="CProfilesGrid"/></Grid>
+            </TabItem>
+        </TabControl>
 
         <!-- Bottom Actions -->
-        <Border Grid.Row="3" Background="#f0f0f0" Padding="5">
+        <Border Grid.Row="1" Background="#f0f0f0" Padding="5">
             <StackPanel Orientation="Horizontal">
                 <Button x:Name="UndoBtn" Content="Undo" Click="UndoBtn_Click" Margin="5" Padding="10,5" IsEnabled="False"/>
                 <Button x:Name="RedoBtn" Content="Redo" Click="RedoBtn_Click" Margin="5" Padding="10,5" IsEnabled="False"/>

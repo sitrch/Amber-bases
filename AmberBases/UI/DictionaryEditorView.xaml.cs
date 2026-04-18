@@ -130,15 +130,8 @@ namespace AmberBases.UI
 
         private DictionaryTableControl GetActiveGrid()
         {
-            if (SystemProvidersGrid.Visibility == Visibility.Visible) return SystemProvidersGrid;
-            if (ProfileSystemsGrid.Visibility == Visibility.Visible) return ProfileSystemsGrid;
-            if (ColorsGrid.Visibility == Visibility.Visible) return ColorsGrid;
-            if (StandartBarLengthsGrid.Visibility == Visibility.Visible) return StandartBarLengthsGrid;
-            if (ProfileTypesGrid.Visibility == Visibility.Visible) return ProfileTypesGrid;
-            if (ApplicabilitiesGrid.Visibility == Visibility.Visible) return ApplicabilitiesGrid;
-            if (ProfileArticlesGrid.Visibility == Visibility.Visible) return ProfileArticlesGrid;
-            if (CoatingTypesGrid.Visibility == Visibility.Visible) return CoatingTypesGrid;
-            if (CProfilesGrid.Visibility == Visibility.Visible) return CProfilesGrid;
+            if (TablesTabControl?.SelectedItem is TabItem tabItem && tabItem.Content is DictionaryTableControl grid)
+                return grid;
             return null;
         }
 
@@ -157,11 +150,11 @@ namespace AmberBases.UI
             }));
         }
 
-        private void BtnShowGrid_Click(object sender, RoutedEventArgs e)
+        private void TablesTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is string gridName)
+            if (TablesTabControl?.SelectedItem is TabItem tabItem)
             {
-                // Проверяем несохранённые изменения в текущей активной таблице
+                // Check for unsaved changes in current grid
                 var activeGrid = GetActiveGrid();
                 if (activeGrid?.ActionTracker?.HasUnsavedChanges == true)
                 {
@@ -170,26 +163,12 @@ namespace AmberBases.UI
                         "Несохранённые изменения",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
+                    // Don't cancel - let the tab switch complete
                     return;
                 }
 
-                SystemProvidersGrid.Visibility = Visibility.Collapsed;
-                ProfileSystemsGrid.Visibility = Visibility.Collapsed;
-                ColorsGrid.Visibility = Visibility.Collapsed;
-                StandartBarLengthsGrid.Visibility = Visibility.Collapsed;
-                ProfileTypesGrid.Visibility = Visibility.Collapsed;
-                ApplicabilitiesGrid.Visibility = Visibility.Collapsed;
-                ProfileArticlesGrid.Visibility = Visibility.Collapsed;
-                CoatingTypesGrid.Visibility = Visibility.Collapsed;
-                CProfilesGrid.Visibility = Visibility.Collapsed;
-
-                var grid = this.FindName(gridName) as DictionaryTableControl;
-                if (grid != null)
-                {
-                    grid.Visibility = Visibility.Visible;
-                    // Force update undo/redo buttons right away when switching tabs
-                    OnAnyTrackerStateChanged(false, false);
-                }
+                // Update undo/redo buttons when switching tabs
+                OnAnyTrackerStateChanged(false, false);
             }
         }
 
@@ -384,17 +363,15 @@ namespace AmberBases.UI
             if (_isMaterialsMode)
             {
                 // Скрываем панель переключения таблиц и показываем только артикулы
-                var selectorBorder = FindName("DictionarySelectorBorder") as Border;
-                if (selectorBorder != null)
-                    selectorBorder.Visibility = Visibility.Collapsed;
+                if (TablesTabControl != null)
+                    TablesTabControl.Visibility = Visibility.Collapsed;
                 ShowProfileArticles();
             }
             else
             {
                 // Восстанавливаем панель переключения таблиц
-                var selectorBorder = FindName("DictionarySelectorBorder") as Border;
-                if (selectorBorder != null)
-                    selectorBorder.Visibility = Visibility.Visible;
+                if (TablesTabControl != null)
+                    TablesTabControl.Visibility = Visibility.Visible;
             }
         }
 
@@ -403,16 +380,11 @@ namespace AmberBases.UI
         /// </summary>
         public void ShowProfileArticles()
         {
-            // Симулируем нажатие кнопки Profile Articles
-            ProfileArticlesGrid.Visibility = Visibility.Visible;
-            SystemProvidersGrid.Visibility = Visibility.Collapsed;
-            ProfileSystemsGrid.Visibility = Visibility.Collapsed;
-            ColorsGrid.Visibility = Visibility.Collapsed;
-            StandartBarLengthsGrid.Visibility = Visibility.Collapsed;
-            ProfileTypesGrid.Visibility = Visibility.Collapsed;
-            ApplicabilitiesGrid.Visibility = Visibility.Collapsed;
-            CoatingTypesGrid.Visibility = Visibility.Collapsed;
-            CProfilesGrid.Visibility = Visibility.Collapsed;
+            // Select the Profile Articles tab
+            if (TablesTabControl.Items.Count > 6)
+            {
+                TablesTabControl.SelectedIndex = 6; // Артикулы Профилей - 7th tab (0-indexed)
+            }
             
             // Force update undo/redo buttons
             OnAnyTrackerStateChanged(false, false);
