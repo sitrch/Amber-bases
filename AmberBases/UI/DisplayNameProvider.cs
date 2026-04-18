@@ -63,19 +63,16 @@ public static class DisplayNameProvider
                     if (prop.DeclaringType != type)
                         continue;
 
-                    var propType = prop.PropertyType;
-                    if (propType.IsClass && excludedTypes.Contains(propType.FullName))
-                        continue;
-
                     var displayAttr = prop.GetCustomAttribute<ColumnDisplayNameAttribute>();
                     var visibleAttr = prop.GetCustomAttribute<ColumnVisibleAttribute>();
 
                     if (displayAttr == null && visibleAttr == null)
                     {
-                        if (propType.IsClass && !excludedTypes.Contains(propType.FullName))
+                        var propType = prop.PropertyType;
+                        var isNavProp = propType.IsClass && !excludedTypes.Contains(propType.FullName);
+                        if (isNavProp)
                             continue;
 
-                        var isNavProp = propType.IsClass && propType != typeof(string);
                         _propertyCache[(type.Name, prop.Name)] = new ColumnInfo(prop.Name, !isNavProp);
                         continue;
                     }
