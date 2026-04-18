@@ -11,7 +11,6 @@ namespace AmberBases
 protected override void OnStartup(StartupEventArgs e)
 {
     base.OnStartup(e);
-    ColumnSettings.Initialize();
     ColumnOrderStore.Load();
     RegisterGlobalInputBindings();
 }

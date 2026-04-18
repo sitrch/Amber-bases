@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-
-namespace AmberBases.UI;
+using System.Reflection;
+using AmberBases.Core.Models;
 
 public class ColumnInfo
 {
@@ -35,49 +35,99 @@ public static class DisplayNameProvider
         { "CustomerContact", "Контакты клиентов" }
     };
 
-    private static readonly Dictionary<string, ColumnInfo> PropertyNames = new()
+    private static readonly Dictionary<(string type, string prop), ColumnInfo> _propertyCache = new();
+    private static bool _initialized;
+
+    private static void Initialize()
     {
-        { "Name", new ColumnInfo("Название") },
-        { "Description", new ColumnInfo("Описание") },
-        { "Title", new ColumnInfo("Заголовок") },
-        { "ColorName", new ColumnInfo("Название цвета") },
-        { "RAL", new ColumnInfo("RAL код") },
-        { "Length", new ColumnInfo("Длина") },
-        { "Code", new ColumnInfo("Код") },
-        { "BOMArticle", new ColumnInfo("Код BOM") },
-        { "Article", new ColumnInfo("Артикул") },
-        { "CutWisibleWidth", new ColumnInfo("Ширина реза") },
-        { "Info", new ColumnInfo("Информация") },
-        { "Position", new ColumnInfo("Позиция") },
-        { "Address", new ColumnInfo("Адрес") },
-        { "JobTitle", new ColumnInfo("Должность") },
-        { "LastName", new ColumnInfo("Фамилия") },
-        { "FirstName", new ColumnInfo("Имя") },
-        { "MiddleName", new ColumnInfo("Отчество") },
-        { "Phone", new ColumnInfo("Телефон") },
-        { "ManufacturerId", new ColumnInfo("Производители") },
-        { "SystemId", new ColumnInfo("Система") },
-        { "ColorId", new ColumnInfo("Цвет") },
-        { "StandartBarLengthId", new ColumnInfo("Длина хлыста") },
-        { "ProfileTypeId", new ColumnInfo("Тип профиля") },
-        { "CoatingTypeId", new ColumnInfo("Тип покрытия") },
-        { "Id", new ColumnInfo("ID", false) }
-    };
+        if (_initialized) return;
+
+        var baseType = typeof(AmberBases.Core.Models.Dictionaries.BaseDictionaryModel);
+        var assembly = baseType.Assembly;
+
+        var excludedTypes = new HashSet<string>
+        {
+            typeof(object).FullName,
+            typeof(string).FullName,
+            typeof(ValueType).FullName
+        };
+
+        foreach (var type in assembly.GetTypes())
+        {
+            if (type.IsClass && !type.IsAbstract && baseType.IsAssignableFrom(type))
+            {
+                var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+                foreach (var prop in props)
+                {
+                    if (prop.DeclaringType != type)
+                        continue;
+
+                    var propType = prop.PropertyType;
+                    if (propType.IsClass && excludedTypes.Contains(propType.FullName))
+                        continue;
+
+                    var displayAttr = prop.GetCustomAttribute<ColumnDisplayNameAttribute>();
+                    var visibleAttr = prop.GetCustomAttribute<ColumnVisibleAttribute>();
+
+                    if (displayAttr == null && visibleAttr == null)
+                    {
+                        var isNavProp = propType.IsClass && propType != typeof(string);
+                        _propertyCache[(type.Name, prop.Name)] = new ColumnInfo(prop.Name, !isNavProp);
+                        continue;
+                    }
+
+                    string name = displayAttr?.Name ?? prop.Name;
+                    bool visible = displayAttr?.Visible ?? visibleAttr?.Visible ?? true;
+
+                    if (displayAttr != null && !displayAttr.Visible)
+                    {
+                        visible = false;
+                    }
+
+                    _propertyCache[(type.Name, prop.Name)] = new ColumnInfo(name, visible);
+                }
+            }
+        }
+
+        _initialized = true;
+    }
 
     public static string GetTypeName(string typeName) =>
         TypeNames.TryGetValue(typeName, out var name) ? name : typeName;
 
-    public static string GetPropertyName(string propertyName) =>
-        PropertyNames.TryGetValue(propertyName, out var info) ? info.Name : propertyName;
+    public static string GetPropertyName(string propertyName)
+    {
+        Initialize();
+        var info = GetColumnInfo(propertyName);
+        return info?.Name ?? propertyName;
+    }
 
-    public static bool IsPropertyVisible(string propertyName) =>
-        PropertyNames.TryGetValue(propertyName, out var info) ? info.Visible : true;
+    public static bool IsPropertyVisible(string propertyName)
+    {
+        Initialize();
+        var info = GetColumnInfo(propertyName);
+        return info?.Visible ?? true;
+    }
 
     public static ColumnInfo GetColumnInfo(string propertyName)
     {
-        if (PropertyNames.TryGetValue(propertyName, out var info))
-            return info;
+        Initialize();
+
+        foreach (var kvp in _propertyCache)
+        {
+            if (kvp.Key.Item2 == propertyName)
+                return kvp.Value;
+        }
+
         return new ColumnInfo(propertyName, true);
+    }
+
+    public static ColumnInfo GetPropertyInfo(string entityType, string propertyName)
+    {
+        Initialize();
+        var key = (entityType, propertyName);
+        return _propertyCache.TryGetValue(key, out var info) ? info : null;
     }
 
     public static string GetTypeName<T>() => GetTypeName(typeof(T).Name);

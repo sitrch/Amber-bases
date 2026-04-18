@@ -1,4 +1,5 @@
 using System;
+using AmberBases.Core.Models;
 
 namespace AmberBases.Core.Models.Dictionaries
 {
@@ -8,17 +9,15 @@ namespace AmberBases.Core.Models.Dictionaries
     public class StandartBarLength : BaseDictionaryModel
     {
         #region Основные свойства
-        
-        /// <summary>
-        /// Длина хлыста.
-        /// </summary>
+
+        [ColumnDisplayName("Длина")]
         public decimal Length { get; set; }
 
         /// <summary>
         /// Computed-свойство для совместимости с FK lookup (DisplayMemberPath = "Name").
         /// </summary>
         public string Name => Length.ToString();
-        
+
         #endregion
     }
 }

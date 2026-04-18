@@ -1,4 +1,5 @@
 using System;
+using AmberBases.Core.Models;
 
 namespace AmberBases.Core.Models.Dictionaries
 {
@@ -8,9 +9,10 @@ namespace AmberBases.Core.Models.Dictionaries
     public class Applicability : BaseDictionaryModel
     {
         #region Основные свойства
-        
+
+        [ColumnDisplayName("Название")]
         public string Name { get; set; }
-        
+
         #endregion
     }
 }

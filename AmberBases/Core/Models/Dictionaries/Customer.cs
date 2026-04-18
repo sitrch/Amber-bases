@@ -1,4 +1,5 @@
 using System;
+using AmberBases.Core.Models;
 
 namespace AmberBases.Core.Models.Dictionaries
 {
@@ -8,10 +9,13 @@ namespace AmberBases.Core.Models.Dictionaries
     public class Customer : BaseDictionaryModel
     {
         #region Основные свойства
-        
-        public string Name { get; set; } // В БД FBase это поле "Заказчик"
+
+        [ColumnDisplayName("Название")]
+        public string Name { get; set; }
+
+        [ColumnDisplayName("Адрес")]
         public string Address { get; set; }
-        
+
         #endregion
     }
 }

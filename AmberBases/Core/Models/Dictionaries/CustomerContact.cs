@@ -1,4 +1,5 @@
 using System;
+using AmberBases.Core.Models;
 
 namespace AmberBases.Core.Models.Dictionaries
 {
@@ -8,22 +9,38 @@ namespace AmberBases.Core.Models.Dictionaries
     public class CustomerContact : BaseDictionaryModel
     {
         #region Служебные свойства
-        
-        public int CustomerId { get; set; } // В БД FBase это поле "id_Заказчики"
-        
+
+        [ColumnDisplayName("Клиент", false)]
+        public int CustomerId { get; set; }
+
         #endregion
 
         #region Основные свойства
-        
-        public string JobTitle { get; set; } // Должность
-        public string LastName { get; set; } // Фамилия
-        public string FirstName { get; set; } // Имя
-        public string MiddleName { get; set; } // Отчество
-        public string PhoneWork1 { get; set; } // ТелефонРабочий
-        public string PhoneWork2 { get; set; } // ТелефонРабочий2
-        public string PhoneWork3 { get; set; } // ТелефонРабочий3
-        public string PhoneHome { get; set; } // ТелефонДомашний
-        
+
+        [ColumnDisplayName("Должность")]
+        public string JobTitle { get; set; }
+
+        [ColumnDisplayName("Фамилия")]
+        public string LastName { get; set; }
+
+        [ColumnDisplayName("Имя")]
+        public string FirstName { get; set; }
+
+        [ColumnDisplayName("Отчество")]
+        public string MiddleName { get; set; }
+
+        [ColumnDisplayName("Телефон рабочий")]
+        public string PhoneWork1 { get; set; }
+
+        [ColumnDisplayName("Телефон рабочий 2")]
+        public string PhoneWork2 { get; set; }
+
+        [ColumnDisplayName("Телефон рабочий 3")]
+        public string PhoneWork3 { get; set; }
+
+        [ColumnDisplayName("Телефон домашний")]
+        public string PhoneHome { get; set; }
+
         #endregion
     }
 }

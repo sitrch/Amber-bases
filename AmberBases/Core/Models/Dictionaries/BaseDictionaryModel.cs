@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using AmberBases.Core.Models;
 
 namespace AmberBases.Core.Models.Dictionaries
 {
@@ -8,8 +8,13 @@ namespace AmberBases.Core.Models.Dictionaries
     /// </summary>
     public abstract class BaseDictionaryModel
     {
+        [ColumnDisplayName("ID", false)]
         public int Id { get; set; }
+
+        [ColumnDisplayName("Позиция")]
         public int Position { get; set; }
+
+        [ColumnDisplayName("Информация")]
         public string Info { get; set; }
     }
 }

@@ -1,88 +1,53 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using AmberBases.Core.Models;
 
 namespace AmberBases.UI;
 
 public static class ColumnSettings
 {
-    private static readonly Dictionary<string, Dictionary<string, ColumnInfo>> _settings = new();
-    private static readonly Dictionary<string, HashSet<string>> _excludedNavProps = new();
-    private static readonly HashSet<string> _defaultExcludedNavProps = new()
-    {
-        "Manufacturer", "System", "Color", "StandartBarLength", "ProfileType",
-        "Provider", "CoatingType", "Article"
-    };
+    private static bool _initialized;
 
-    public static void SetColumn(string entityType, string propertyName, string displayName, bool visible = true)
+    private static void Initialize()
     {
-        if (!_settings.ContainsKey(entityType))
-            _settings[entityType] = new Dictionary<string, ColumnInfo>();
-        
-        _settings[entityType][propertyName] = new ColumnInfo(displayName, visible);
-    }
-
-    public static void SetExcludedNavProps(string entityType, params string[] propertyNames)
-    {
-        _excludedNavProps[entityType] = new HashSet<string>(propertyNames);
+        if (_initialized) return;
+        _initialized = true;
     }
 
     public static string GetColumnName(string entityType, string propertyName)
     {
-        if (_settings.TryGetValue(entityType, out var typeSettings) &&
-            typeSettings.TryGetValue(propertyName, out var colInfo))
-            return colInfo.Name;
-        
+        Initialize();
         return DisplayNameProvider.GetPropertyName(propertyName);
     }
 
     public static bool IsColumnVisible(string entityType, string propertyName)
     {
-        if (_settings.TryGetValue(entityType, out var typeSettings) &&
-            typeSettings.TryGetValue(propertyName, out var colInfo))
-            return colInfo.Visible;
-        
+        Initialize();
         return DisplayNameProvider.IsPropertyVisible(propertyName);
     }
 
     public static ColumnInfo GetColumnInfo(string entityType, string propertyName)
     {
-        if (_settings.TryGetValue(entityType, out var typeSettings) &&
-            typeSettings.TryGetValue(propertyName, out var colInfo))
-            return colInfo;
-        
+        Initialize();
         return DisplayNameProvider.GetColumnInfo(propertyName);
     }
 
     public static bool IsNavPropExcluded(string entityType, string propertyName)
     {
-        if (_excludedNavProps.TryGetValue(entityType, out var excluded) &&
-            excluded.Contains(propertyName))
+        var baseType = typeof(AmberBases.Core.Models.Dictionaries.BaseDictionaryModel);
+        var type = baseType.Assembly.GetType($"AmberBases.Core.Models.Dictionaries.{entityType}");
+        if (type == null) return false;
+
+        var prop = type.GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+        if (prop == null) return false;
+
+        var propType = prop.PropertyType;
+        if (propType.IsClass && propType != typeof(string) && !propType.IsPrimitive)
+        {
             return true;
-        
-        return _defaultExcludedNavProps.Contains(propertyName);
-    }
+        }
 
-    public static void Initialize()
-    {
-        // Настройки для ProfileArticle
-        SetColumn("ProfileArticle", "Name", "Артикул");
-        SetColumn("ProfileArticle", "Code", "Код");
-
-        // Настройки для CProfile
-        SetColumn("CProfile", "Name", "Название профиля");
-        SetColumn("CProfile", "Code", "Код");
-        SetColumn("CProfile", "BOMArticle", "Код BOM", false); // скрыт
-
-        // Настройки для Customer
-        SetColumn("Customer", "Name", "Название");
-        SetColumn("Customer", "Address", "Адрес");
-
-        // Настройки для CustomerContact
-        SetColumn("CustomerContact", "LastName", "Фамилия");
-        SetColumn("CustomerContact", "FirstName", "Имя");
-        SetColumn("CustomerContact", "Phone", "Телефон");
-
-        // Исключить навигационные свойства для конкретных таблиц
-        SetExcludedNavProps("CProfile", "Manufacturer", "System", "Color", "StandartBarLength");
+        return false;
     }
 }
