@@ -42,5 +42,7 @@ namespace AmberBases.Core.Models.Dictionaries
         public string PhoneHome { get; set; }
 
         #endregion
+
+        public override string Name => $"{LastName} {FirstName} {MiddleName}".Trim();
     }
 }

@@ -10,5 +10,8 @@ namespace AmberBases.Core.Models.Dictionaries
     {
         [ColumnDisplayName("ID", false)]
         public int Id { get; set; }
+
+        [ColumnDisplayName("Наименование", true)]
+        public virtual string Name { get; set; }
     }
 }

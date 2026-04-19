@@ -11,7 +11,7 @@ namespace AmberBases.Core.Models.Dictionaries
         #region Основные свойства
 
         [ColumnDisplayName("Название")]
-        public string Name { get; set; }
+        public override string Name { get; set; }
 
         #endregion
     }

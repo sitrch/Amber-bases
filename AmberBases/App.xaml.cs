@@ -3,17 +3,23 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using AmberBases.UI;
+using AmberBases.UI.Tracking;
 
 namespace AmberBases
 {
     public partial class App : Application
     {
-protected override void OnStartup(StartupEventArgs e)
-{
-    base.OnStartup(e);
-    ColumnOrderStore.Load();
-    RegisterGlobalInputBindings();
-}
+        private static InterfaceSettingsTracker _settings;
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            _settings = new InterfaceSettingsTracker();
+            ColumnOrderStore.Initialize(_settings);
+            RegisterGlobalInputBindings();
+        }
+
+        public static InterfaceSettingsTracker GetSettingsTracker() => _settings;
 
         /// <summary>
         /// Регистрирует глобальные горячие клавиши для всех DataGrid в приложении.

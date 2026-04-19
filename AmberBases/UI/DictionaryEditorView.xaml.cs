@@ -44,7 +44,7 @@ namespace AmberBases.UI
             InitializeComponent();
             _dataService = new SqliteDictionaryDataService();
             _dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DatabaseConfig.SqliteDictionariesDatabaseFile);
-            _settingsTracker = new InterfaceSettingsTracker();
+            _settingsTracker = App.GetSettingsTracker();
             
             // Ensure DB is initialized
             _dataService.InitializeDatabase(_dbPath);
@@ -335,6 +335,19 @@ namespace AmberBases.UI
         private static bool HasUnsavedChanges(DictionaryTableControl grid)
         {
             return grid?.ActionTracker?.HasUnsavedChanges == true;
+        }
+
+        public void SaveAllColumnSettings()
+        {
+            SystemProvidersGrid?.SaveColumnSettings();
+            ProfileSystemsGrid?.SaveColumnSettings();
+            ColorsGrid?.SaveColumnSettings();
+            StandartBarLengthsGrid?.SaveColumnSettings();
+            ProfileTypesGrid?.SaveColumnSettings();
+            ApplicabilitiesGrid?.SaveColumnSettings();
+            ProfileArticlesGrid?.SaveColumnSettings();
+            CoatingTypesGrid?.SaveColumnSettings();
+            CProfilesGrid?.SaveColumnSettings();
         }
 
         /// <summary>

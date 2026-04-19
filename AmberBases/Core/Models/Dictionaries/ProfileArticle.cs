@@ -51,7 +51,7 @@ namespace AmberBases.Core.Models.Dictionaries
         /// Computed-свойство для совместимости с FK lookup (DisplayMemberPath = "Name").
         /// </summary>
         [ColumnDisplayName("Name", false)]
-        public string Name => Article;
+        public override string Name => Article;
 
         /// <summary>
         /// Профильная система (FK на ProfileSystem).

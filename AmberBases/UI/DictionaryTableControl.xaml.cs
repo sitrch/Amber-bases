@@ -47,7 +47,7 @@ namespace AmberBases.UI
         private string _editingPropertyName;
 
         private Window _parentWindow;
-        private List<string> _currentColumnOrder = new();
+        private List<ColumnSettingsEntry> _currentColumns = new();
 
         // Навигационные свойства, которые не должны отображаться как колонки
         private static readonly HashSet<string> ExcludedNavigationProperties = new HashSet<string>
@@ -152,9 +152,6 @@ namespace AmberBases.UI
             // Подписываемся на события редактирования ячеек
             MainDataGrid.PreparingCellForEdit += MainDataGrid_PreparingCellForEdit;
             MainDataGrid.CellEditEnding += MainDataGrid_CellEditEnding;
-
-            // Подписываемся на событие перемещения столбцов
-            MainDataGrid.ColumnReordered += MainDataGrid_ColumnReordered;
 
             // Извлекаем lookup коллекции из allCollections
             ExtractLookupCollections();
@@ -466,16 +463,19 @@ namespace AmberBases.UI
                 }
             }
 
-            // Применяем сохранённый порядок столбцов
-            var savedOrder = ColumnOrderStore.GetOrder(_entityType.Name);
-            if (savedOrder != null && savedOrder.Count > 0)
+            // Применяем сохранённый порядок и ширину столбцов при загрузке таблицы
+            var savedColumns = ColumnOrderStore.GetColumns(_entityType.Name);
+            if (savedColumns != null && savedColumns.Count > 0)
             {
-                _currentColumnOrder = savedOrder;
-                ApplyColumnOrder(savedOrder);
+                _currentColumns = savedColumns;
+                ApplyColumnSettings(savedColumns);
             }
             else
             {
-                _currentColumnOrder = MainDataGrid.Columns.Select(c => GetColumnPropertyName(c)).ToList();
+                // Сохраняем начальную конфигурацию столбцов
+                _currentColumns = MainDataGrid.Columns
+                    .Select(c => new ColumnSettingsEntry { name = GetColumnPropertyName(c), width = 100 })
+                    .ToList();
             }
         }
 
@@ -492,21 +492,30 @@ namespace AmberBases.UI
             return null;
         }
 
-        private void ApplyColumnOrder(List<string> order)
+        private void ApplyColumnSettings(List<ColumnSettingsEntry> columns)
         {
-            var columns = new List<DataGridColumn>(MainDataGrid.Columns);
+            var allColumns = new List<DataGridColumn>(MainDataGrid.Columns);
 
-            for (int i = 0; i < order.Count; i++)
+            // Сначала применяем ширину ко всем столбцам, которые есть в настройках
+            foreach (var col in allColumns)
             {
-                var propName = order[i];
-                var column = columns.FirstOrDefault(c => GetColumnPropertyName(c) == propName);
-                if (column != null)
+                var propName = GetColumnPropertyName(col);
+                var colSettings = columns.FirstOrDefault(c => c.name == propName);
+                if (colSettings != null && colSettings.width > 0)
                 {
-                    var currentIndex = MainDataGrid.Columns.IndexOf(column);
-                    if (currentIndex != i && currentIndex >= 0)
-                    {
-                        MainDataGrid.Columns.Move(currentIndex, i);
-                    }
+                    col.Width = new DataGridLength(colSettings.width);
+                }
+            }
+
+            // Затем устанавливаем порядок столбцов через DisplayIndex
+            // Столбцы, которых нет в сохраненных настройках, получат DisplayIndex по умолчанию (0)
+            // и будут автоматически сдвинуты после столбцов с явным DisplayIndex
+            foreach (var colSetting in columns)
+            {
+                var col = allColumns.FirstOrDefault(c => GetColumnPropertyName(c) == colSetting.name);
+                if (col != null)
+                {
+                    col.DisplayIndex = columns.IndexOf(colSetting);
                 }
             }
         }
@@ -868,14 +877,38 @@ namespace AmberBases.UI
             CommitEdit();
         }
 
-        
-
-        private void MainDataGrid_ColumnReordered(object sender, DataGridColumnEventArgs e)
+        /// <summary>
+        /// Сохраняет текущие настройки столбцов (порядок и ширину) для данной таблицы.
+        /// Вызывается при закрытии приложения.
+        /// </summary>
+        public void SaveColumnSettings()
         {
-            var order = MainDataGrid.Columns.Select(c => GetColumnPropertyName(c)).ToList();
-            _currentColumnOrder = order;
-            ColumnOrderStore.SaveOrder(_entityType.Name, order);
-            Console.WriteLine($"[ColumnOrder] Saved order for {_entityType.Name}: {string.Join(", ", order)}");
+            if (_entityType == null || MainDataGrid.Columns.Count == 0) return;
+
+            // Обновляем _currentColumns на основе текущего состояния DataGrid
+            // Сортируем столбцы по DisplayIndex и собираем их актуальную ширину (ActualWidth)
+            var newColumns = MainDataGrid.Columns
+                .OrderBy(c => c.DisplayIndex)
+                .Select(c =>
+                {
+                    var propName = GetColumnPropertyName(c);
+                    if (string.IsNullOrEmpty(propName)) return null;
+                    
+                    // Ищем существующую запись, чтобы сохранить старую ширину, если ActualWidth недоступен
+                    var existing = _currentColumns?.FirstOrDefault(x => x.name == propName);
+                    // При сохранении берём фактическую ширину столбца
+                    double width = c.ActualWidth > 0 ? c.ActualWidth : (existing?.width ?? 100);
+                    
+                    return new ColumnSettingsEntry { name = propName, width = width };
+                })
+                .Where(x => x != null)
+                .ToList();
+
+            if (newColumns.Count > 0)
+            {
+                _currentColumns = newColumns;
+                ColumnOrderStore.SaveColumns(_entityType.Name, _currentColumns);
+            }
         }
 
         #region Add / Delete Row

@@ -16,7 +16,7 @@ using AmberBases.UI.Tracking;
 
 namespace AmberBases
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : RibbonWindow
     {
         private readonly IExcelDataService _excelDataService;
         private readonly ISqliteDataService _sqliteDataService;
@@ -342,6 +342,8 @@ namespace AmberBases
 
         private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            DictionaryEditor.SaveAllColumnSettings();
+
             // Проверяем несохранённые изменения в справочниках
             if (DictionaryEditor.HasAnyUnsavedChanges())
             {

@@ -25,36 +25,29 @@ namespace AmberBases.Services
                 
                 using (var transaction = connection.BeginTransaction())
                 {
-                    // Create tables using reflection
                     CreateTable<SystemProvider>("SystemProviders", connection);
-                    // Add Information column to SystemProviders if not exists
-                    try { ExecuteNonQuery(connection, "ALTER TABLE SystemProviders ADD COLUMN Information TEXT;"); } catch { /* Column exists */ }
+                    AddColumnIfNotExists(connection, "SystemProviders", "Information", "TEXT");
                     CreateTable<ProfileSystem>("ProfileSystems", connection);
-                    // Add Description column to ProfileSystems if not exists
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileSystems ADD COLUMN Description TEXT;"); } catch { /* Column exists */ }
+                    AddColumnIfNotExists(connection, "ProfileSystems", "Description", "TEXT");
                     CreateTable<Color>("Colors", connection);
-                    // Add columns to Colors if not exists
-                    try { ExecuteNonQuery(connection, "ALTER TABLE Colors ADD COLUMN ColorName TEXT;"); } catch { /* Column exists */ }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE Colors ADD COLUMN RAL INTEGER;"); } catch { /* Column exists */ }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE Colors ADD COLUMN CoatingTypeId INTEGER;"); } catch { /* Column exists */ }
+                    AddColumnIfNotExists(connection, "Colors", "ColorName", "TEXT");
+                    AddColumnIfNotExists(connection, "Colors", "RAL", "INTEGER");
+                    AddColumnIfNotExists(connection, "Colors", "CoatingTypeId", "INTEGER");
                     CreateTable<StandartBarLength>("StandartBarLengths", connection);
                     CreateTable<ProfileType>("ProfileTypes", connection);
                     CreateTable<Applicability>("Applicabilities", connection);
                     CreateTable<ProfileArticle>("ProfileArticles", connection);
-                    // Миграция: новые колонки для ProfileArticles (структура CBaseArticle с FK)
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN ManufacturerId INTEGER;"); } catch { }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN SystemId INTEGER;"); } catch { }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN Code TEXT;"); } catch { }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN BOMArticle TEXT;"); } catch { }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN Title TEXT;"); } catch { }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN Description TEXT;"); } catch { }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN ColorId INTEGER;"); } catch { }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN CutWisibleWidth REAL;"); } catch { }
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN StandartBarLength REAL;"); } catch { }
-                    // Миграция: добавлена недостающая колонка ProfileTypeId
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN ProfileTypeId INTEGER;"); } catch { }
-                    // Миграция: добавлена колонка StandartBarLengthId (FK на StandartBarLengths)
-                    try { ExecuteNonQuery(connection, "ALTER TABLE ProfileArticles ADD COLUMN StandartBarLengthId INTEGER;"); } catch { }
+                    AddColumnIfNotExists(connection, "ProfileArticles", "ManufacturerId", "INTEGER");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "SystemId", "INTEGER");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "Code", "TEXT");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "BOMArticle", "TEXT");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "Title", "TEXT");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "Description", "TEXT");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "ColorId", "INTEGER");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "CutWisibleWidth", "REAL");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "StandartBarLength", "REAL");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "ProfileTypeId", "INTEGER");
+                    AddColumnIfNotExists(connection, "ProfileArticles", "StandartBarLengthId", "INTEGER");
                     CreateTable<CProfile>("Profiles", connection);
                     CreateTable<Customer>("Customers", connection);
                     CreateTable<CustomerContact>("CustomerContacts", connection);
@@ -76,6 +69,28 @@ namespace AmberBases.Services
             using (var command = new SQLiteCommand(query, connection))
             {
                 command.ExecuteNonQuery();
+            }
+        }
+
+        private bool ColumnExists(SQLiteConnection connection, string tableName, string columnName)
+        {
+            using (var command = new SQLiteCommand($"PRAGMA table_info({tableName});", connection))
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if (reader.GetString(1).Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private void AddColumnIfNotExists(SQLiteConnection connection, string tableName, string columnName, string sqlDef)
+        {
+            if (!ColumnExists(connection, tableName, columnName))
+            {
+                ExecuteNonQuery(connection, $"ALTER TABLE {tableName} ADD COLUMN {columnName} {sqlDef};");
             }
         }
 

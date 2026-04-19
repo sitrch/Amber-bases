@@ -16,6 +16,8 @@ namespace AmberBases.Core.Models.Dictionaries
         [ColumnDisplayName("Название профиля")]
         public string Title { get; set; }
 
+        public override string Name => Title;
+
         /// <summary>
         /// Описание профиля
         /// </summary>

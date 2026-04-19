@@ -19,7 +19,8 @@ namespace AmberBases.Core.Models.Dictionaries
         /// <summary>
         /// Computed.свойство для совместимости с FK lookup (DisplayMemberPath = "Name").
         /// </summary>
-        public string Name => ColorName;
+        [ColumnDisplayName("Name", false)]
+        public override string Name => ColorName;
 
         /// <summary>
         /// Код RAL.

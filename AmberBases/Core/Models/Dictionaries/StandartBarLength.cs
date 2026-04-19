@@ -16,7 +16,7 @@ namespace AmberBases.Core.Models.Dictionaries
         /// <summary>
         /// Computed-свойство для совместимости с FK lookup (DisplayMemberPath = "Name").
         /// </summary>
-        public string Name => Length.ToString();
+        public override string Name => Length.ToString();
 
         #endregion
     }

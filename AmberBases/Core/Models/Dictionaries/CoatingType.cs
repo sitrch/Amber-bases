@@ -14,7 +14,7 @@ namespace AmberBases.Core.Models.Dictionaries
         /// Название типа покрытия.
         /// </summary>
         [ColumnDisplayName("Название")]
-        public string Name { get; set; }
+        public override string Name { get; set; }
 
         #endregion
     }
